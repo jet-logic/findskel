@@ -30,36 +30,68 @@ def intrangep(s=""):
     f, d, t = s.partition("..")
     if d:
         a, b = [int(f) if f else 0, int(t) if t else float("inf")]
-        return lambda n: n >= a and n <= b
+        return (a, b)
     elif f:
         c = int(f)
-        return lambda n: n == c
+        return (c, c)
     else:
-        return lambda n: n >= 0
+        return (0, float("inf"))
 
 
 class ListDir(ScanTree):
-
+    # glob
+    # type
+    # time
+    # size
+    # symlink check
+    # depth
     def add_arguments(self, argp):
         self.bottom_up = True
-        self.files = True
-        self.dirs = True
         self.abs_path = True
+        self.includes = []
         self._sizes = []
+        self._depth = None
         if not argp.description:
             argp.description = "List files under directory"
-        if 1:
-            argp.add_argument(
-                "--sizes",
-                action="append",
-                dest="_sizes",
-                help="filter sizes",
-            )
+        argp.add_argument(
+            "--sizes",
+            action="append",
+            dest="_sizes",
+            type=lambda x: sizerangep(x),
+            help="filter sizes",
+        )
+        argp.add_argument(
+            "--depth",
+            dest="_depth",
+            type=lambda x: intrangep(x),
+            help="filter sizes",
+        )
 
         return super().add_arguments(argp)
 
-    def check_accept(self, e: DirEntry) -> bool:
-        return super().check_accept(e)
+    def ready(self) -> None:
+        sizes = self._sizes
+        if sizes:
+
+            def check_size(de: DirEntry, *args):
+                for f in sizes:
+                    if not f(de.stat().st_size):
+                        return False
+
+            self.add_check_accept(check_size)
+        depth: tuple[int, int] = self._depth
+        if depth:
+            a, b = depth
+
+            def check_depth(de: DirEntry, d: int):
+                return d >= a and d <= b
+
+            def enter_depth(de: DirEntry, d: int):
+                return d <= b
+
+            self.add_check_enter(enter_depth)
+            self.add_check_accept(check_depth)
+        return super().ready()
 
     def process_entry(self, de: DirEntry | FileSystemEntry) -> None:
         if self.abs_path:

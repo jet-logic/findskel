@@ -3,7 +3,7 @@ from os import DirEntry, scandir, stat, stat_result
 from os.path import basename, relpath
 from typing import List, Optional, Callable, Generator
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 
 class FileSystemEntry:
@@ -44,33 +44,40 @@ class WalkDir:
     excludes: Optional[List[re.Pattern[str]]] = None
     includes: Optional[List[re.Pattern[str]]] = None
     max_depth: int = -1  # Default to -1 for no limit
-    _entry_filters: Optional[List[Callable[[DirEntry], bool]]] = None
     _root_dir: str = ""
+    _check_accept: tuple[object, tuple[object, object] | None] | None = None
+    _check_enter: tuple[object, tuple[object, object] | None] | None = None
 
-    def check_accept(self, e: DirEntry) -> bool:
-        if self.includes or self.excludes:
-            r: str = relpath(e.path, self._root_dir)
-            if self.includes:
-                if not any(m.search(r) for m in self.includes):
-                    return False
-            if self.excludes:
-                if any(m.search(r) for m in self.excludes):
-                    return False
-
-        if self._entry_filters:
-            for f in self._entry_filters:
-                if f(e) is False:
-                    return False
+    def check_accept(self, e: DirEntry, depth: int = -1) -> bool:
+        cur = self._check_accept
+        while cur is not None:
+            check, then = cur
+            if check(e, depth) is False:
+                return False
+            cur = then
         return True
 
-    def check_enter(self, x: DirEntry, depth: Optional[int] = None) -> bool:
+    def add_check_accept(self, f: Callable[[DirEntry, int], bool]):
+        self._check_accept = (f, self._check_accept)
+
+    def add_check_enter(self, f: Callable[[DirEntry, int], bool]):
+        self._check_enter = (f, self._check_enter)
+
+    def check_enter(self, x: DirEntry, depth: int = -1) -> bool:
+        if not x.is_dir():
+            return False
         if self.max_depth != -1 and depth is not None and depth > self.max_depth:
             return False
-
-        if x.is_dir():
-            return self.follow_symlinks > 0 if x.is_symlink() else True
-
-        return False
+        if x.is_symlink():
+            if not (self.follow_symlinks > 0):
+                return False
+        cur = self._check_enter
+        while cur is not None:
+            check, then = cur
+            if check(x, depth) is False:
+                return False
+            cur = then
+        return True
 
     def scan_directory(self, src: str) -> Generator[DirEntry, None, None]:
         try:
@@ -92,9 +99,9 @@ class WalkDir:
     ) -> Generator[DirEntry, None, None]:
         depth += 1
         for de in self.scan_directory(src):
-            if self.check_accept(de):
+            if self.check_accept(de, depth):
                 yield de
-            if self.check_enter(de, depth=depth):
+            if self.check_enter(de, depth):
                 yield from self.walk_top_down(de.path, depth)
 
     def walk_bottom_up(
@@ -102,9 +109,9 @@ class WalkDir:
     ) -> Generator[DirEntry, None, None]:
         depth += 1
         for de in self.scan_directory(src):
-            if self.check_enter(de, depth=depth):
+            if self.check_enter(de, depth):
                 yield from self.walk_bottom_up(de.path, depth)
-            if self.check_accept(de):
+            if self.check_accept(de, depth):
                 yield de
 
     def create_entry(self, path: str) -> FileSystemEntry:

@@ -21,10 +21,8 @@ class Empty(ScanTree):
             "--dirs", action="store_const", help="folders only", dest="which", const=2
         )
         argp.add_argument("--remove", action="store_true", help="remove", dest="remove")
-        return super().add_arguments(argp)
 
-    def check_accept(self, e: DirEntry) -> bool:
-        if super().check_accept(e):
+        def check(e: DirEntry, *args):
             if e.is_file():
                 return e.stat().st_size == 0
             elif e.is_dir():
@@ -42,7 +40,9 @@ class Empty(ScanTree):
                             return n == 0
                         except Exception as ex:
                             print("Error:", e.path, ex, file=stderr)
-        return False
+
+        self.add_check_accept(check)
+        return super().add_arguments(argp)
 
     def process_entry(self, de: DirEntry | FileSystemEntry) -> None:
 

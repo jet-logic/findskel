@@ -1,7 +1,8 @@
+from os import DirEntry
 from .main import Main
 from .walkdir import WalkDir
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 
 class ScanTree(WalkDir, Main):
@@ -78,6 +79,27 @@ class ScanTree(WalkDir, Main):
 
         argp.add_argument("paths", metavar="PATH", nargs="*")
         return super().add_arguments(argp)
+
+    def ready(self) -> None:
+
+        if self.includes or self.excludes:
+            from os.path import basename, relpath
+
+            inc = self.includes
+            exc = self.excludes
+
+            def check_glob(e: DirEntry, *args):
+                r: str = relpath(e.path, self._root_dir)
+                if inc:
+                    if not any(m.search(r) for m in inc):
+                        return False
+                # print("check_glob", e, r)
+                if exc:
+                    if any(m.search(r) for m in exc):
+                        return False
+
+            self.add_check_accept(check_glob)
+        return super().ready()
 
     def start(self):
         self.start_walk(self.paths)
