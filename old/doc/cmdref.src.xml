@@ -1,0 +1,170 @@
+<cmdopt command="python fileop.py">
+<!-- filter -->
+	<opt name="empty" choice="opt" rep="norepeat" group-id="filter">
+		<description>
+			<para>Process only empty files or directories.</para>
+		</description>
+	</opt>
+	<opt name="no-empty" choice="opt" rep="norepeat" group-id="filter">
+		<description>
+			<para>Process only non-empty files or directories.</para>
+		</description>
+	</opt>
+	<opt name="type" choice="opt" rep="norepeat" group-id="filter">
+		<replaceable>CODE</replaceable>
+		<description>
+			<para>Filter the file type. See <xref linkend='filtertype' /> in manual.</para>
+		</description>
+	</opt>
+
+<!-- traversal -->
+	<opt name="carryon" choice="opt" rep="norepeat" group-id="traversal">
+		<description>
+			<para>Process next file even if error occurs.</para>
+		</description>
+	</opt>
+	<opt name="maxdepth" choice="opt" rep="norepeat" group-id="traversal">
+		<replaceable>N</replaceable>
+		<description>
+			<para>Recurs directories only <option>N</option> level deep.</para>
+		</description>
+	</opt>
+	<opt name="mindepth" choice="opt" rep="norepeat" group-id="traversal">
+		<replaceable>N</replaceable>
+		<description>
+			<para>Process only files under <option>N</option> level deep.</para>
+		</description>
+	</opt>
+	<opt name="follow" char="L" choice="opt" rep="norepeat" group-id="traversal">
+		<description>
+			<para>Follow symbolic links.</para>
+		</description>
+	</opt>
+	<opt name="depth" char="d" choice="opt" rep="norepeat" group-id="traversal">
+		<description>
+			<para>Process each directory's contents before the directory itself.</para>
+		</description>
+	</opt>
+	<opt char="g" choice="opt" rep="repeat" group-id="traversal">
+		<replaceable>GLOB</replaceable>
+		<description>
+			<para>File name glob. Example <quote>read*.txt</quote> for all text files whose filename starts with <quote>read</quote></para>
+		</description>
+	</opt>
+	<opt char="e" choice="opt" rep="repeat" group-id="traversal">
+		<replaceable>PATTERN</replaceable>
+		<description>
+			<para>File name regular expression pattern. Example <quote>read.+\.txt</quote></para>
+		</description>
+	</opt>
+
+<!-- operation -->
+	<opt name="del" choice="opt" rep="norepeat" group-id="operation">
+		<description>
+			<para>Delete found files. Use <option>--act</option> to actually delete the file.</para>
+		</description>
+	</opt>
+	<opt name="ren" char="s" rep="repeat" choice="opt" group-id="operation">
+		<replaceable>&lt;MATCH&gt;&lt;REPLACE&gt;</replaceable>
+		<description>
+			<para>Substitute file names to this regex pattern.
+			This is similar to perl's substitution operator (s{}{}).
+			The bracket quote ([], {}, &lt;&gt;, ()) must be balance.
+			Use <option>--act</option> to rename the file.</para>
+		</description>
+	</opt>
+	<opt name="stat" rep="norepeat" choice="opt" group-id="operation">
+		<description>
+			<para>Show statistics. The number of files, folders, total size.</para>
+		</description>
+	</opt>
+	<opt name="exstat" rep="norepeat" choice="opt" group-id="operation">
+		<description>
+			<para>Show statistics about file extension. The number of files using a certain file extension.</para>
+		</description>
+	</opt>
+	<opt name="package" char="p" choice="opt" rep="norepeat" group-id="operation">
+		<replaceable>MODULE</replaceable>
+		<description>
+			<para><option>MODULE</option> is module import name or the actual module file path to load.
+			See <xref linkend='user-module' /> in manual.</para>
+		</description>
+	</opt>
+
+<!-- print -->
+	<opt name="basename" choice="opt" rep="norepeat" group-id="print">
+		<description>
+			<para>Print only name portion of path.</para>
+		</description>
+	</opt>
+	<opt name="mingw" choice="opt" rep="norepeat" group-id="print">
+		<description>
+			<para>Print path in MingW path format. For MS Windows only.</para>
+		</description>
+	</opt>
+	<opt name="cygwin" choice="opt" rep="norepeat" group-id="print">
+		<description>
+			<para>Print path in CygWin path format. For MS Windows only.</para>
+		</description>
+	</opt>
+	<opt name="uri" choice="opt" rep="norepeat" group-id="print">
+		<description>
+			<para>Print path in URI path format. e.g. <code>file:///B:/app/README</code></para>
+		</description>
+	</opt>
+	<opt name="rel-to" choice="opt" rep="norepeat" group-id="print">
+		<replaceable>DIR</replaceable>
+		<description>
+			<para>Print path relative to <option>DIR</option></para>
+		</description>
+	</opt>
+
+<!-- misc -->
+	<opt name="version" choice="opt" rep="norepeat" group-id="main">
+		<description>
+			<para>Show version.</para>
+		</description>
+	</opt>
+	<opt name="dry-run" choice="opt" rep="norepeat" group-id="main">
+		<description>
+			<para>Perform a trial run with no changes made.</para>
+		</description>
+	</opt>
+	<opt name="act" choice="opt" rep="norepeat" group-id="main">
+		<description>
+			<para>Depends on operation. May modify file.</para>
+		</description>
+	</opt>
+	<opt rep="repeat" choice="plain" group-id="main">
+		<replaceable>PATH</replaceable>
+		<description>
+			<para>The directory to search</para>
+		</description>
+	</opt>
+<!-- group -->
+	<cmd-group group-id="main">
+		<description>
+			<para>Main option:</para>
+		</description>
+	</cmd-group>
+	<cmd-group group-id="traversal">
+		<description>
+			<para>Directory traversal option:</para>
+		</description>
+	</cmd-group>
+	<cmd-group group-id="filter">
+		<description>
+			<para>Filter files:</para>
+		</description>
+	</cmd-group>
+	<cmd-group group-id="operation">
+		<description>
+			<para>Operation option:</para>
+		</description>
+	</cmd-group>
+	<cmd-group group-id="print">
+		<description>
+			<para>Pretty print options:</para>
+		</description>
+	</cmd-group>
+</cmdopt>
