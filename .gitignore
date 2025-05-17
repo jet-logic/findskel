@@ -142,3 +142,5 @@ cython_debug/
 *.tar.*
 *.zip
 *.tgz
+old/
+scan_dir_skel/prev/

@@ -1,24 +1,41 @@
-from argparse import SUPPRESS
 from os import DirEntry
-from os import scandir, rmdir, unlink
 from pathlib import Path
-from sys import stderr
 from .walkdir import FileSystemEntry
 from .scantree import ScanTree
 
 
 def filesizep(s: str):
     if s[0].isnumeric():
-        for i, v in enumerate("bkmgtpezy"):
-            if s[-1].lower().endswith(v):
-                return int(s[0:-1]) * (2 ** (10 * i))
+        q = s.lower().rstrip("b")
+        for i, v in enumerate("kmgtpezy"):
+            if q[-1].endswith(v):
+                return float(q[0:-1]) * (2 ** (10 * (i + 1)))
+        return float(q)
     return float(s)
 
 
 def sizerangep(s=""):
-    f, _, t = s.partition("..")
-    a, b = [filesizep(f) if f else 0, filesizep(t) if t else float("inf")]
-    return lambda n: n >= a and n <= b
+    f, d, t = s.partition("..")
+    if d:
+        a, b = [filesizep(f) if f else 0, filesizep(t) if t else float("inf")]
+        return lambda n: n >= a and n <= b
+    elif f:
+        c = filesizep(f)
+        return lambda n: n == c
+    else:
+        return lambda n: n >= 0
+
+
+def intrangep(s=""):
+    f, d, t = s.partition("..")
+    if d:
+        a, b = [int(f) if f else 0, int(t) if t else float("inf")]
+        return lambda n: n >= a and n <= b
+    elif f:
+        c = int(f)
+        return lambda n: n == c
+    else:
+        return lambda n: n >= 0
 
 
 class ListDir(ScanTree):

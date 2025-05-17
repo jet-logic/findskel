@@ -9,16 +9,16 @@ class Empty(ScanTree):
 
     def add_arguments(self, argp):
         self.bottom_up = True
-        self.files = True
-        self.dirs = True
+        self.which = 0
         self.remove = False
         if not argp.description:
             argp.description = "List empty file or folder"
-        argp.add_argument(
-            "--files", action="store_false", help="files only", dest="dirs"
+        group = argp.add_mutually_exclusive_group()
+        group.add_argument(
+            "--files", action="store_const", help="files only", dest="which", const=1
         )
-        argp.add_argument(
-            "--dirs", action="store_false", help="folders only", dest="files"
+        group.add_argument(
+            "--dirs", action="store_const", help="folders only", dest="which", const=2
         )
         argp.add_argument("--remove", action="store_true", help="remove", dest="remove")
         return super().add_arguments(argp)
@@ -31,7 +31,7 @@ class Empty(ScanTree):
                 try:
                     it = scandir(e.path)
                 except Exception as ex:
-                    print("Error:", e.path, file=stderr)
+                    print("Error:", e.path, ex, file=stderr)
                 else:
                     n = 0
                     with it:
@@ -41,26 +41,36 @@ class Empty(ScanTree):
                                 break
                             return n == 0
                         except Exception as ex:
-                            print("Error:", e.path, file=stderr)
+                            print("Error:", e.path, ex, file=stderr)
         return False
 
     def process_entry(self, de: DirEntry | FileSystemEntry) -> None:
 
         if de.is_file():
-            if self.files is not True:
+            if self.which not in (1, 0):
                 return
-        elif de.is_dir():
-            if self.dirs is not True:
-                return
-        if self.remove:
-            if de.is_dir():
-                print("RD", de.path, file=stderr)
-                rmdir(de.path)
-            else:
+            if self.remove:
                 print("RM", de.path, file=stderr)
                 unlink(de.path)
+                return
+        elif de.is_dir():
+            if self.which not in (2, 0):
+                return
+            if self.remove:
+                print("RD", de.path, file=stderr)
+                rmdir(de.path)
+                return
         else:
-            print(de.path)
+            return
+        # if self.remove:
+        #     if de.is_dir():
+        #         print("RD", de.path, file=stderr)
+        #         rmdir(de.path)
+        #     else:
+        #         print("RM", de.path, file=stderr)
+        #         unlink(de.path)
+        # else:
+        print(de.path)
 
 
 (__name__ == "__main__") and Empty().main()
