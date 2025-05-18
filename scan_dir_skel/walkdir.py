@@ -39,16 +39,14 @@ class FileSystemEntry:
 
 class WalkDir:
     follow_symlinks: int = 0
-    bottom_up: bool = False
+    bottom_up: bool | None = False
     carry_on: bool = True
-    excludes: Optional[List[re.Pattern[str]]] = None
-    includes: Optional[List[re.Pattern[str]]] = None
-    max_depth: int = -1  # Default to -1 for no limit
+    #
     _root_dir: str = ""
     _check_accept: tuple[object, tuple[object, object] | None] | None = None
     _check_enter: tuple[object, tuple[object, object] | None] | None = None
 
-    def check_accept(self, e: DirEntry, depth: int = -1) -> bool:
+    def check_accept(self, e: DirEntry, depth: int) -> bool:
         cur = self._check_accept
         while cur is not None:
             check, then = cur
@@ -63,14 +61,11 @@ class WalkDir:
     def on_check_enter(self, f: Callable[[DirEntry, int], bool]):
         self._check_enter = (f, self._check_enter)
 
-    def check_enter(self, x: DirEntry, depth: int = -1) -> bool:
+    def check_enter(self, x: DirEntry, depth: int) -> bool:
         if not x.is_dir():
             return False
-        if self.max_depth != -1 and depth is not None and depth > self.max_depth:
+        if x.is_symlink() and not (self.follow_symlinks > 0):
             return False
-        if x.is_symlink():
-            if not (self.follow_symlinks > 0):
-                return False
         cur = self._check_enter
         while cur is not None:
             check, then = cur

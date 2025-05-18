@@ -6,6 +6,10 @@ __version__ = "0.0.2"
 
 
 class ScanTree(WalkDir, Main):
+    _re_excludes: list[object] | None = None
+    _re_includes: list[object] | None = None
+    _file_sizes: list[object] | None = None
+    _dir_depth: tuple[int, int] | None = None
 
     def add_arguments(self, argp):
         group = argp.add_argument_group("Traversal")
@@ -15,30 +19,12 @@ class ScanTree(WalkDir, Main):
             help="Process each directory's contents before the directory itself",
         )
         group.add_argument(
-            "-P",
-            dest="follow_symlinks",
-            const=0,
-            default=0,
-            help="Never follow symbolic links. This is the default behaviour",
-            action="store_const",
-        )
-        group.add_argument(
-            "-H",
-            dest="follow_symlinks",
-            const=0,
-            default=-1,
-            help="Do not follow symbolic links, except while processing  the  command line arguments",
-            action="store_const",
-        )
-        group.add_argument(
-            "-L",
+            "--follow-symlinks",
             dest="follow_symlinks",
             const=1,
-            default=-1,
             help="Follow symbolic links",
             action="store_const",
         )
-        group.add_argument("--max-depth", action="store", type=int)
 
         try:
             b = self.dry_run
@@ -57,7 +43,7 @@ class ScanTree(WalkDir, Main):
                     help="test run only",
                 )
 
-        if self.excludes is not None or self.includes is not None:
+        if self._re_excludes is not None or self._re_includes is not None:
             from re import compile as regex
 
             group.add_argument(
@@ -65,7 +51,7 @@ class ScanTree(WalkDir, Main):
                 metavar="GLOB",
                 action="append",
                 type=lambda s: regex(globre(s)),
-                dest="excludes",
+                dest="_re_excludes",
                 help="exclude matching GLOB",
             )
             group.add_argument(
@@ -73,8 +59,26 @@ class ScanTree(WalkDir, Main):
                 metavar="GLOB",
                 action="append",
                 type=lambda s: regex(globre(s)),
-                dest="includes",
+                dest="_re_includes",
                 help="include matching GLOB",
+            )
+
+        if self._file_sizes is not None:
+            group.add_argument(
+                "--sizes",
+                action="append",
+                dest="_file_sizes",
+                type=lambda x: sizerangep(x),
+                help="Filter sizes: 1k.., 4g, ..2mb",
+                metavar="min..max",
+            )
+        if self._dir_depth is not None:
+            group.add_argument(
+                "--depth",
+                dest="_dir_depth",
+                type=lambda x: intrangep(x),
+                help="Check for depth: 2.., 4, ..3",
+                metavar="min..max",
             )
 
         argp.add_argument("paths", metavar="PATH", nargs="*")
@@ -82,11 +86,11 @@ class ScanTree(WalkDir, Main):
 
     def ready(self) -> None:
 
-        if self.includes or self.excludes:
-            from os.path import basename, relpath
+        if self._re_includes or self._re_excludes:
+            from os.path import relpath
 
-            inc = self.includes
-            exc = self.excludes
+            inc = self._re_includes
+            exc = self._re_excludes
 
             def check_glob(e: DirEntry, **kwargs):
                 r: str = relpath(e.path, self._root_dir)
@@ -99,6 +103,39 @@ class ScanTree(WalkDir, Main):
                         return False
 
             self.on_check_accept(check_glob)
+
+        sizes: list[tuple[int, int]] = self._file_sizes
+        if sizes:
+
+            def check_size(de: DirEntry, **kwargs):
+                ok = 0
+                n = de.stat().st_size
+                for a, b in sizes:
+                    if n >= a and n <= b:
+                        ok += 1
+                return ok > 0
+
+            self.on_check_accept(check_size)
+
+        depth: tuple[int, int] = self._dir_depth
+        if depth:
+            a, b = depth
+
+            # print("DEPTH", (a, b), file=stderr)
+
+            def check_depth(de: DirEntry, **kwargs):
+                d: int = kwargs["depth"]
+                # print("check_depth", (d, (a, b)), de.path, file=stderr)
+                return d >= a and d <= b
+
+            def enter_depth(de: DirEntry, **kwargs):
+                d: int = kwargs["depth"]
+                # print("enter_depth", (d, b), de.path, file=stderr)
+                return d <= b
+
+            self.on_check_enter(enter_depth)
+            self.on_check_accept(check_depth)
+
         return super().ready()
 
     def start(self):
@@ -235,3 +272,37 @@ def globre(pat):
     assert i == n
     res = "".join(res)
     return rf"(?s:{res})\Z"
+
+
+def filesizep(s: str):
+    if s[0].isnumeric():
+        q = s.lower().rstrip("b")
+        for i, v in enumerate("kmgtpezy"):
+            if q[-1].endswith(v):
+                return float(q[0:-1]) * (2 ** (10 * (i + 1)))
+        return float(q)
+    return float(s)
+
+
+def sizerangep(s=""):
+    f, d, t = s.partition("..")
+    if d:
+        a, b = [filesizep(f) if f else 0, filesizep(t) if t else float("inf")]
+        return (a, b)
+    elif f:
+        c = filesizep(f)
+        return (c, c)
+    else:
+        return (0, float("inf"))
+
+
+def intrangep(s=""):
+    f, d, t = s.partition("..")
+    if d:
+        a, b = [int(f) if f else 0, int(t) if t else float("inf")]
+        return (a, b)
+    elif f:
+        c = int(f)
+        return (c, c)
+    else:
+        return (0, float("inf"))

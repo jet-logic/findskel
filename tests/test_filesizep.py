@@ -1,7 +1,7 @@
 #!/bin/env python3
 import unittest
 
-from scan_dir_skel.list import filesizep
+from scan_dir_skel.scantree import filesizep
 
 
 class TestFilesizep(unittest.TestCase):

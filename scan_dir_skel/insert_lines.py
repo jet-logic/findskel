@@ -1,8 +1,7 @@
 from os import DirEntry
-
-from scan_dir_skel.walkdir import FileSystemEntry
-from .scantree import ScanTree
 from re import compile as regex
+from .walkdir import FileSystemEntry
+from .scantree import ScanTree
 
 BEGIN = regex(r"\s*(?:#|\/\*)\s*(?:<INSERT\s+([^\s\>]+)\s*\>|<<<\s+([^\s]+))\s*")
 END = regex(r"\s*(?:#|\/\*)\s*(?:</INSERT>|>>>)")

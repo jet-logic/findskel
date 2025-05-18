@@ -205,7 +205,7 @@ class Main:
             argp.parse_args(args, self)
 
     def ready(self) -> None:
-        """Called before command execution."""
+        """Called after arguments are parsed."""
         pass
 
     def done(self) -> None:
@@ -213,7 +213,7 @@ class Main:
         pass
 
     def start(self) -> None:
-        """Main command execution."""
+        """Main command execution. Called after ready()"""
         pass
 
     def sub_args(self):
