@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 __version__ = "0.0.1"
 if TYPE_CHECKING:
     import argparse
-    from typing import Any, Sequence
+    from typing import Sequence
 
 INVALID = object()
 
@@ -15,7 +15,9 @@ class Argument:
         self.args = args
         self.kwargs = kwargs
 
-    def _add(self, name: str, type_: type, argp: "argparse.ArgumentParser", that: "Any") -> None:
+    def _add(
+        self, name: str, type_: type, argp: "argparse.ArgumentParser", that: object
+    ) -> None:
         """Add argument to parser."""
         args = []
         kwargs = {**self.kwargs}
@@ -29,7 +31,11 @@ class Argument:
 
         if action is None:
             if const is not None:
-                kwargs["action"] = "append_const" if type_ and issubclass(type_, list) else "store_const"
+                kwargs["action"] = (
+                    "append_const"
+                    if type_ and issubclass(type_, list)
+                    else "store_const"
+                )
             elif type_ is None:
                 kwargs["action"] = "store"
             elif issubclass(type_, bool):
@@ -73,7 +79,9 @@ class Argument:
         else:
 
             def add_args(x: str) -> None:
-                args.append(x if x.startswith("-") else (f"--{x}" if len(x) > 1 else f"-{x}"))
+                args.append(
+                    x if x.startswith("-") else (f"--{x}" if len(x) > 1 else f"-{x}")
+                )
 
             for x in self.args:
                 if " " in x or "\t" in x:
@@ -89,7 +97,7 @@ class Argument:
         argp.add_argument(*args, **kwargs)
 
 
-def _arg_fields(inst: "Any") -> "Any":
+def _arg_fields(inst: object) -> object:
     for c in inst.__class__.__mro__:
         for k, v in tuple(c.__dict__.items()):
             if isinstance(v, Argument):
@@ -112,7 +120,7 @@ def flag(*args: str, **kwargs) -> Argument:
 class Main:
     """Base class for all CLI commands."""
 
-    def __getattr__(self, name: str) -> "Any":
+    def __getattr__(self, name: str) -> object:
         if not name.startswith("_get_"):
             f = getattr(self, f"_get_{name}", None)
             if f:
@@ -123,7 +131,9 @@ class Main:
         try:
             m = super().__getattr__
         except AttributeError:
-            raise AttributeError(f"{self.__class__.__name__} has no attribute {name}") from None
+            raise AttributeError(
+                f"{self.__class__.__name__} has no attribute {name}"
+            ) from None
         else:
             return m(name)
 
@@ -158,7 +168,9 @@ class Main:
         for k, v, t in _arg_fields(self):
             v._add(k, t, argp, self)
 
-    def parse_arguments(self, argp: "argparse.ArgumentParser", args: "Sequence[str]|None") -> None:
+    def parse_arguments(
+        self, argp: "argparse.ArgumentParser", args: "Sequence[str]|None"
+    ) -> None:
         """Parse command line arguments."""
         sp = None
         for s, k in self.sub_args():
@@ -204,6 +216,6 @@ class Main:
         """Main command execution."""
         pass
 
-    def sub_args(self) -> "Any":
+    def sub_args(self):
         """Yield subcommands."""
         yield None, {}

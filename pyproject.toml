@@ -5,3 +5,6 @@ description = ""
 authors = [
     {name = "Jet-Logic"},
 ]
+
+[tool.black]
+line-length = 127

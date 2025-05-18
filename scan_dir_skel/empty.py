@@ -22,7 +22,7 @@ class Empty(ScanTree):
         )
         argp.add_argument("--remove", action="store_true", help="remove", dest="remove")
 
-        def check(e: DirEntry, *args):
+        def check(e: DirEntry, **kwargs):
             if e.is_file():
                 return e.stat().st_size == 0
             elif e.is_dir():
@@ -41,7 +41,7 @@ class Empty(ScanTree):
                         except Exception as ex:
                             print("Error:", e.path, ex, file=stderr)
 
-        self.add_check_accept(check)
+        self.on_check_accept(check)
         return super().add_arguments(argp)
 
     def process_entry(self, de: DirEntry | FileSystemEntry) -> None:

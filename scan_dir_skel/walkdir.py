@@ -52,15 +52,15 @@ class WalkDir:
         cur = self._check_accept
         while cur is not None:
             check, then = cur
-            if check(e, depth) is False:
+            if check(e, depth=depth) is False:
                 return False
             cur = then
         return True
 
-    def add_check_accept(self, f: Callable[[DirEntry, int], bool]):
+    def on_check_accept(self, f: Callable[[DirEntry, int], bool]):
         self._check_accept = (f, self._check_accept)
 
-    def add_check_enter(self, f: Callable[[DirEntry, int], bool]):
+    def on_check_enter(self, f: Callable[[DirEntry, int], bool]):
         self._check_enter = (f, self._check_enter)
 
     def check_enter(self, x: DirEntry, depth: int = -1) -> bool:
@@ -74,7 +74,7 @@ class WalkDir:
         cur = self._check_enter
         while cur is not None:
             check, then = cur
-            if check(x, depth) is False:
+            if check(x, depth=depth) is False:
                 return False
             cur = then
         return True
@@ -82,7 +82,7 @@ class WalkDir:
     def scan_directory(self, src: str) -> Generator[DirEntry, None, None]:
         try:
             # enter_dir
-            yield from scandir(src)
+            it = scandir(src)
         except FileNotFoundError:
             pass
         except Exception:
@@ -91,8 +91,7 @@ class WalkDir:
             else:
                 raise
         else:
-            pass
-            # entered_dir
+            yield from it
 
     def walk_top_down(
         self, src: str, depth: int = 0
@@ -126,11 +125,12 @@ class WalkDir:
         for p in paths:
             de: FileSystemEntry = self.create_entry(p)
             if de.is_dir():
-                self._root_dir: str = de.path
+                self._root_dir = de.path
                 yield from (
                     self.walk_bottom_up(p) if self.bottom_up else self.walk_top_down(p)
                 )
             else:
+                self._root_dir = ""
                 yield de
 
     def start_walk(self, dirs: List[str]) -> None:

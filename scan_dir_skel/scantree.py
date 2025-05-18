@@ -88,7 +88,7 @@ class ScanTree(WalkDir, Main):
             inc = self.includes
             exc = self.excludes
 
-            def check_glob(e: DirEntry, *args):
+            def check_glob(e: DirEntry, **kwargs):
                 r: str = relpath(e.path, self._root_dir)
                 if inc:
                     if not any(m.search(r) for m in inc):
@@ -98,7 +98,7 @@ class ScanTree(WalkDir, Main):
                     if any(m.search(r) for m in exc):
                         return False
 
-            self.add_check_accept(check_glob)
+            self.on_check_accept(check_glob)
         return super().ready()
 
     def start(self):

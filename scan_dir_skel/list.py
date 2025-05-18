@@ -40,11 +40,17 @@ def intrangep(s=""):
 
 
 class ListDir(ScanTree):
+    _sizes: list[object]
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._sizes = []
+
     def add_arguments(self, argp):
         self.bottom_up = True
         self.abs_path = True
         self.includes = []
-        self._sizes = []
+
         self._depth = None
         if not argp.description:
             argp.description = "List files under directory"
@@ -53,13 +59,13 @@ class ListDir(ScanTree):
             action="append",
             dest="_sizes",
             type=lambda x: sizerangep(x),
-            help="filter sizes",
+            help="Filter sizes",
         )
         argp.add_argument(
             "--depth",
             dest="_depth",
             type=lambda x: intrangep(x),
-            help="filter sizes",
+            help="Check for depth",
         )
 
         return super().add_arguments(argp)
@@ -68,30 +74,32 @@ class ListDir(ScanTree):
         sizes = self._sizes
         if sizes:
 
-            def check_size(de: DirEntry, *args):
+            def check_size(de: DirEntry, **kwargs):
                 ok = 0
                 for f in sizes:
                     if f(de.stat().st_size):
                         ok += 1
                 return ok > 0
 
-            self.add_check_accept(check_size)
+            self.on_check_accept(check_size)
         depth: tuple[int, int] = self._depth
         if depth:
             a, b = depth
 
             # print("DEPTH", (a, b), file=stderr)
 
-            def check_depth(de: DirEntry, d: int):
+            def check_depth(de: DirEntry, **kwargs):
+                d: int = kwargs["depth"]
                 # print("check_depth", (d, (a, b)), de.path, file=stderr)
                 return d >= a and d <= b
 
-            def enter_depth(de: DirEntry, d: int):
+            def enter_depth(de: DirEntry, **kwargs):
+                d: int = kwargs["depth"]
                 # print("enter_depth", (d, b), de.path, file=stderr)
                 return d <= b
 
-            self.add_check_enter(enter_depth)
-            self.add_check_accept(check_depth)
+            self.on_check_enter(enter_depth)
+            self.on_check_accept(check_depth)
         return super().ready()
 
     def process_entry(self, de: DirEntry | FileSystemEntry) -> None:
