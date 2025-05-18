@@ -128,9 +128,7 @@ class WalkDir:
             if de.is_dir():
                 self._root_dir: str = de.path
                 yield from (
-                    self.walk_bottom_up(p, depth=0)
-                    if self.bottom_up
-                    else self.walk_top_down(p, depth=0)
+                    self.walk_bottom_up(p) if self.bottom_up else self.walk_top_down(p)
                 )
             else:
                 yield de

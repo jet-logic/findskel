@@ -1,5 +1,6 @@
 from os import DirEntry
 from pathlib import Path
+from sys import stderr
 from .walkdir import FileSystemEntry
 from .scantree import ScanTree
 
@@ -39,12 +40,6 @@ def intrangep(s=""):
 
 
 class ListDir(ScanTree):
-    # glob
-    # type
-    # time
-    # size
-    # symlink check
-    # depth
     def add_arguments(self, argp):
         self.bottom_up = True
         self.abs_path = True
@@ -74,19 +69,25 @@ class ListDir(ScanTree):
         if sizes:
 
             def check_size(de: DirEntry, *args):
+                ok = 0
                 for f in sizes:
-                    if not f(de.stat().st_size):
-                        return False
+                    if f(de.stat().st_size):
+                        ok += 1
+                return ok > 0
 
             self.add_check_accept(check_size)
         depth: tuple[int, int] = self._depth
         if depth:
             a, b = depth
 
+            # print("DEPTH", (a, b), file=stderr)
+
             def check_depth(de: DirEntry, d: int):
+                # print("check_depth", (d, (a, b)), de.path, file=stderr)
                 return d >= a and d <= b
 
             def enter_depth(de: DirEntry, d: int):
+                # print("enter_depth", (d, b), de.path, file=stderr)
                 return d <= b
 
             self.add_check_enter(enter_depth)
@@ -101,3 +102,10 @@ class ListDir(ScanTree):
 
 
 (__name__ == "__main__") and ListDir().main()
+
+# glob*
+# type
+# time
+# size*
+# symlink check
+# depth*
