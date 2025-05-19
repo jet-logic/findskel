@@ -6,6 +6,12 @@ from .scantree import ScanTree
 
 
 class Empty(ScanTree):
+    def __init__(self) -> None:
+        super().__init__()
+        self._file_sizes = []
+        self._dir_depth = ()
+        self._re_excludes = []
+        self._re_includes = []
 
     def add_arguments(self, argp):
         self.bottom_up = True
@@ -14,12 +20,8 @@ class Empty(ScanTree):
         if not argp.description:
             argp.description = "List empty file or folder"
         group = argp.add_mutually_exclusive_group()
-        group.add_argument(
-            "--files", action="store_const", help="files only", dest="which", const=1
-        )
-        group.add_argument(
-            "--dirs", action="store_const", help="folders only", dest="which", const=2
-        )
+        group.add_argument("--files", action="store_const", help="files only", dest="which", const=1)
+        group.add_argument("--dirs", action="store_const", help="folders only", dest="which", const=2)
         argp.add_argument("--remove", action="store_true", help="remove", dest="remove")
 
         def check(e: DirEntry, **kwargs):

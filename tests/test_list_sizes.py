@@ -32,9 +32,9 @@ class TestListCommandWithSizes(unittest.TestCase):
                 os.unlink(path)
         os.rmdir(self.temp_dir)
 
-    def run_list_command(self, *args):
+    def run_list_command(self, *args, path=""):
         """Run the list command and return output as list of lines"""
-        cmd = [sys.executable, "-m", "scan_dir_skel.list", *args, self.temp_dir]
+        cmd = [sys.executable, "-m", "scan_dir_skel.list", *args, path or self.temp_dir]
         print("RUN", cmd)
         result = subprocess.run(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
@@ -104,6 +104,11 @@ class TestListCommandWithSizes(unittest.TestCase):
         # Test case where no files match
         output = self.run_list_command("--sizes", "2m..")
         self.assertEqual(len(output), 0)
+
+    def test_extra(self):
+        output = self.run_list_command(path=f"{self.temp_dir}/large.txt")
+        self.assertEqual(len(output), 1)
+        self.assertIn("large.txt", output[0])
 
 
 if __name__ == "__main__":

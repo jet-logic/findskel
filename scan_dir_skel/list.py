@@ -11,16 +11,21 @@ class ListDir(ScanTree):
         super().__init__()
         self._file_sizes = []
         self._dir_depth = ()
+        self._re_excludes = []
+        self._re_includes = []
 
     def add_arguments(self, argp):
-        self.bottom_up = True
+        # self.bottom_up = True
         self.abs_path = True
 
-        self._depth = None
         if not argp.description:
             argp.description = "List files under directory"
 
         return super().add_arguments(argp)
+
+    def ready(self) -> None:
+        print("bottom_up", self.bottom_up, file=stderr)
+        return super().ready()
 
     def process_entry(self, de: DirEntry | FileSystemEntry) -> None:
         if self.abs_path:

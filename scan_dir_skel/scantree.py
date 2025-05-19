@@ -16,6 +16,7 @@ class ScanTree(WalkDir, Main):
         group.add_argument(
             "--bottom-up",
             action="store_true",
+            dest="bottom_up",
             help="Process each directory's contents before the directory itself",
         )
         group.add_argument(
@@ -32,9 +33,7 @@ class ScanTree(WalkDir, Main):
             pass
         else:
             if b:
-                argp.add_argument(
-                    "--act", action="store_false", dest="dry_run", help="not a test run"
-                )
+                argp.add_argument("--act", action="store_false", dest="dry_run", help="not a test run")
             else:
                 argp.add_argument(
                     "--dry-run",
@@ -45,6 +44,8 @@ class ScanTree(WalkDir, Main):
 
         if self._re_excludes is not None or self._re_includes is not None:
             from re import compile as regex
+
+            # from fnmatch import translate as globre
 
             group.add_argument(
                 "--exclude",
@@ -87,17 +88,19 @@ class ScanTree(WalkDir, Main):
     def ready(self) -> None:
 
         if self._re_includes or self._re_excludes:
-            from os.path import relpath
+            from os.path import relpath, sep
 
             inc = self._re_includes
             exc = self._re_excludes
+            # print("ready:check_glob", inc, exc)
 
             def check_glob(e: DirEntry, **kwargs):
-                r: str = relpath(e.path, self._root_dir)
+                s = f"{e.path}{sep}" if e.is_dir() else e.path
+                r = relpath(s, self._root_dir)
+                # print("check_glob", e, r, s)
                 if inc:
                     if not any(m.search(r) for m in inc):
                         return False
-                # print("check_glob", e, r)
                 if exc:
                     if any(m.search(r) for m in exc):
                         return False
@@ -210,9 +213,7 @@ def globre(pat):
                             del chunks[k]
                     # Escape backslashes and hyphens for set difference (--).
                     # Hyphens that create ranges shouldn't be escaped.
-                    stuff = "-".join(
-                        s.replace("\\", r"\\").replace("-", r"\-") for s in chunks
-                    )
+                    stuff = "-".join(s.replace("\\", r"\\").replace("-", r"\-") for s in chunks)
                 # Escape set operations (&&, ~~ and ||).
                 stuff = sub(r"([&~|])", r"\\\1", stuff)
                 i = j + 1

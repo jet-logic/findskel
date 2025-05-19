@@ -1,7 +1,6 @@
-import re
 from os import DirEntry, scandir, stat, stat_result
-from os.path import basename, relpath
-from typing import List, Optional, Callable, Generator
+from os.path import basename
+from typing import List, Callable, Generator
 
 __version__ = "0.0.2"
 
@@ -10,8 +9,8 @@ class FileSystemEntry:
     __slots__ = ("path", "name")
 
     def __init__(self, path: str) -> None:
-        self.path: str = path
-        self.name: str = basename(self.path)
+        self.path = path
+        self.name = basename(self.path)
 
     def inode(self) -> int:
         return self.stat(follow_symlinks=False).st_ino
@@ -102,9 +101,12 @@ class WalkDir:
         self, src: str, depth: int = 0
     ) -> Generator[DirEntry, None, None]:
         depth += 1
+        des = []
         for de in self.scan_directory(src):
             if self.check_enter(de, depth):
                 yield from self.walk_bottom_up(de.path, depth)
+            des.append(de)
+        for de in des:
             if self.check_accept(de, depth):
                 yield de
 
