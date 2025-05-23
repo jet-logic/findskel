@@ -3,12 +3,12 @@ from re import compile as regex
 from .walkdir import FileSystemEntry
 from .scantree import ScanTree
 
-BEGIN = regex(r"\s*(?:#|\/\*)\s*(?:<INSERT\s+([^\s\>]+)\s*\>|<<<\s+([^\s]+))\s*")
-END = regex(r"\s*(?:#|\/\*)\s*(?:</INSERT>|>>>)")
+BEGIN = regex(r"\s*(?:#|\/\*+)\s*(?:<INSERT\s+([^\s\>]+)\s*\>|<<<\s+([^\s]+))\s*")
+END = regex(r"\s*(?:#|\/\*|)\s*(?:</INSERT>|>>>)")
 
 
 def check(file: str, db: dict[str, dict[str, str]]):
-    print("CHECK", file)
+    # print("CHECK", file)
     with open(file, "r") as r:
         it = iter(r)
         try:
@@ -19,13 +19,13 @@ def check(file: str, db: dict[str, dict[str, str]]):
             m = BEGIN.match(line.rstrip())
             if m:
                 n = m.group(1) or m.group(2)
-                print("BEGIN", n, m)
+                # print("BEGIN", n, m)
                 line = next(it, None)
                 while line is not None:
                     m = END.match(line.rstrip())
                     if m:
                         db.setdefault(file, {}).setdefault(n, "")
-                        print("INS", n, file)
+                        # print("INS", n, file)
                         break
                     line = next(it, None)
             line = next(it, None)
@@ -45,7 +45,7 @@ def replace(file: str, db: dict[str, str], dry_run: bool):
                 while line is not None:
                     m = END.match(line)
                     if m:
-                        # print("END", line)
+                        # print("END", n, db[n])
                         with open(db[n], "r") as r:
                             for line in r:
                                 lines.append(line)
@@ -88,6 +88,7 @@ class InsertLines(ScanTree):
         return check(de.path, self.db)
 
     def done(self) -> None:
+        from sys import stderr
         from pathlib import Path
 
         sd = [Path(d) for d in self.search]
@@ -100,6 +101,15 @@ class InsertLines(ScanTree):
                         e[name] = str(p)
 
         for file, e in self.db.items():
+            seen = None
+            for k, v in e.items():
+                if v:
+                    continue
+                elif seen is None:
+                    seen = True
+                    print("Error:", file, file=stderr)
+                print("\t- Missing", k, file=stderr)
+
             if all(e.values()):
                 replace(file, e, self.dry_run)
 

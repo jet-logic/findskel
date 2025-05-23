@@ -49,6 +49,15 @@ class TestExtra(unittest.TestCase):
         s = "-".join(traverse_iterative(reverse_iterative(linked_list)))
         self.assertEqual(s, "C-B-A")
 
+    def test_linked_list_prepend_start_None(self):
+        # Example:
+        head = None
+        head = prepend(head, "A")
+        head = prepend(head, "B")
+        head = prepend(head, "C")
+        s = "-".join(traverse_iterative(head))
+        self.assertEqual(s, "C-B-A")
+
 
 if __name__ == "__main__":
     unittest.main()
