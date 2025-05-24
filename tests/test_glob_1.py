@@ -2,7 +2,7 @@
 import unittest
 import re
 
-from scan_dir_skel.list import globre3
+from scan_dir_skel.scantree import globre3
 
 
 def match3(pattern, base=""):

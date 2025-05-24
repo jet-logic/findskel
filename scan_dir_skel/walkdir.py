@@ -83,44 +83,11 @@ class WalkDir:
         else:
             yield from it
 
-    def walk_top_down(self, src: str, depth: int = 0) -> Generator[DirEntry, None, None]:
-        depth += 1
-        for de in self.scan_directory(src):
-            if self.check_accept(de, depth):
-                yield de
-            if self.check_enter(de, depth):
-                yield from self.walk_top_down(de.path, depth)
-
-    def walk_bottom_up(self, src: str, depth: int = 0) -> Generator[DirEntry, None, None]:
-        depth += 1
-        des = []
-        for de in self.scan_directory(src):
-            if self.check_enter(de, depth):
-                yield from self.walk_bottom_up(de.path, depth)
-            des.append(de)
-        for de in des:
-            if self.check_accept(de, depth):
-                yield de
-
     def create_entry(self, path: str) -> FileSystemEntry:
         return FileSystemEntry(path)
 
     def process_entry(self, de: DirEntry | FileSystemEntry) -> None:
         print(de.path)
-
-    def iterate_paths(self, paths: List[str]) -> Generator[DirEntry | FileSystemEntry, None, None]:
-        for p in paths:
-            de: FileSystemEntry = self.create_entry(p)
-            if de.is_dir():
-                self._root_dir = de.path
-                yield from (self.walk_bottom_up(p) if self.depth_first else self.walk_top_down(p))
-            else:
-                self._root_dir = ""
-                yield de
-
-    def start_walk(self, dirs: List[str]) -> None:
-        for x in self.iterate_paths(dirs):
-            self.process_entry(x)
 
     def _walk_breadth_first(self, src: str, depth: int = 0) -> Generator[DirEntry, None, None]:
         depth += 1

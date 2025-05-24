@@ -6,8 +6,8 @@ __version__ = "0.0.3"
 
 
 class ScanTree(WalkDir, Main):
-    _re_excludes: list[object] | None = None
-    _re_includes: list[object] | None = None
+    _glob_excludes: list[str] | None = None
+    _glob_includes: list[str] | None = None
     _file_sizes: list[object] | None = None
     _dir_depth: tuple[int, int] | None = None
     _paths_from: list[str] | None = None
@@ -46,23 +46,23 @@ class ScanTree(WalkDir, Main):
                     help="test run only",
                 )
         # --exclude, --include
-        if self._re_excludes is not None or self._re_includes is not None:
-            from re import compile as regex
+        _glob_includes: list[str] = getattr(self, "_glob_includes", None)
+        _glob_excludes: list[str] = getattr(self, "_glob_excludes", None)
+
+        if _glob_excludes is not None or _glob_includes is not None:
 
             group.add_argument(
                 "--exclude",
                 metavar="GLOB",
                 action="append",
-                type=lambda s: regex(globre(s)),
-                dest="_re_excludes",
+                dest="_glob_excludes",
                 help="exclude matching GLOB",
             )
             group.add_argument(
                 "--include",
                 metavar="GLOB",
                 action="append",
-                type=lambda s: regex(globre(s)),
-                dest="_re_includes",
+                dest="_glob_includes",
                 help="include matching GLOB",
             )
         # --sizes
@@ -99,27 +99,42 @@ class ScanTree(WalkDir, Main):
         return super().add_arguments(argp)
 
     def ready(self) -> None:
+        #
+        _glob_includes: list[str] = getattr(self, "_glob_includes", None)
+        _glob_excludes: list[str] = getattr(self, "_glob_excludes", None)
+        if _glob_includes or _glob_excludes:
+            from os.path import relpath, sep, altsep
+            from re import compile as regex, escape
 
-        if self._re_includes or self._re_excludes:
-            from os.path import relpath, sep
+            def makef(s: str):
+                (rex, dir_only, neg, g) = globre3(s, escape=escape, no_neg=True)
+                m = regex(rex)
 
-            inc = self._re_includes
-            exc = self._re_excludes
-            # print("ready:check_glob", inc, exc)
+                def col(r="", is_dir=False):
+                    return (is_dir if dir_only else True) and m.search(r)
+
+                return col
+
+            inc = [makef(s) for s in _glob_includes]
+            exc = [makef(s) for s in _glob_excludes]
+            alt = set(x for x in (sep, altsep) if x and x != "/")
 
             def check_glob(e: DirEntry, **kwargs):
-                s = f"{e.path}{sep}" if e.is_dir() else e.path
-                r = relpath(s, self._root_dir)
+                is_dir = e.is_dir()
+                rel = relpath(e.path, self._root_dir)
                 # print("check_glob", e, r, s)
+                if alt:
+                    for x in alt:
+                        rel = rel.replace(x, "/")
                 if inc:
-                    if not any(m.search(r) for m in inc):
+                    if not any(m(rel, is_dir) for m in inc):
                         return False
                 if exc:
-                    if any(m.search(r) for m in exc):
+                    if any(m(rel, is_dir) for m in exc):
                         return False
 
             self.on_check_accept(check_glob)
-
+        #
         sizes: list[tuple[int, int]] = self._file_sizes
         if sizes:
 
@@ -132,7 +147,7 @@ class ScanTree(WalkDir, Main):
                 return ok > 0
 
             self.on_check_accept(check_size)
-
+        #
         depth: tuple[int, int] = self._dir_depth
         if depth:
             a, b = depth
@@ -151,12 +166,11 @@ class ScanTree(WalkDir, Main):
 
             self.on_check_enter(enter_depth)
             self.on_check_accept(check_depth)
-
+        #
         return super().ready()
 
     def start(self):
         raise DeprecationWarning("Change your code!")
-        self.start_walk(self._paths)
 
     def _walk_paths(self):
         paths_from: list[str] = getattr(self, "_paths_from", None)
@@ -185,134 +199,75 @@ def as_source(path="-", mode="rb"):
     return stdin.buffer if "b" in mode else stdin
 
 
-def globre(pat):
-    from re import escape, sub
-    from os.path import altsep, sep
+def globre3(g: str, base="", escape=lambda x: "", no_neg=False):
 
-    SEP = {sep, altsep}
-    DSTAR = object()
-    RESEP = "[^" + "".join(escape(c) for c in SEP if c) + "]+"
-
-    """Translate a shell PATTERN to a regular expression.
-
-    There is no way to quote meta-characters.
-    """
-
-    STAR = object()
-    res = []
-    add = res.append
-    i, n = 0, len(pat)
+    if no_neg is False and g.startswith("!"):
+        neg = True
+        g = g[1:]
+    else:
+        neg = None
+    if g.endswith("/"):
+        g = g[0:-1]
+        dir_only = True
+    else:
+        dir_only = None
+    i = g.find("/")
+    if i < 0:
+        at_start = False
+    elif i == 0:
+        at_start = True
+        g = g[1:]
+    else:
+        at_start = None
+    i, n = 0, len(g)
+    res = ""
     while i < n:
-        c = pat[i]
+        c = g[i]
         i = i + 1
         if c == "*":
-            # compress consecutive `*` into one
-            if not res:
-                add(STAR)
-            elif res[-1] is STAR:
-                res[-1] = DSTAR
-            elif res[-1] is DSTAR:
-                pass
+            if i < n and "*" == g[i]:
+                i = i + 1
+                res = res + ".*"
+                if i < n and "/" == g[i]:
+                    i = i + 1
+                    res += "/?"
             else:
-                add(STAR)
+                res = res + "[^/]+"
         elif c == "?":
-            add(".")
+            res = res + "[^/]"
         elif c == "[":
             j = i
-            if j < n and pat[j] == "!":
+            if j < n and g[j] == "!":
                 j = j + 1
-            if j < n and pat[j] == "]":
+            if j < n and g[j] == "]":
                 j = j + 1
-            while j < n and pat[j] != "]":
+            while j < n and g[j] != "]":
                 j = j + 1
             if j >= n:
-                add("\\[")
+                res = res + "\\["
             else:
-                stuff = pat[i:j]
-                if "-" not in stuff:
-                    stuff = stuff.replace("\\", r"\\")
-                else:
-                    chunks = []
-                    k = i + 2 if pat[i] == "!" else i + 1
-                    while True:
-                        k = pat.find("-", k, j)
-                        if k < 0:
-                            break
-                        chunks.append(pat[i:k])
-                        i = k + 1
-                        k = k + 3
-                    chunk = pat[i:j]
-                    if chunk:
-                        chunks.append(chunk)
-                    else:
-                        chunks[-1] += "-"
-                    # Remove empty ranges -- invalid in RE.
-                    for k in range(len(chunks) - 1, 0, -1):
-                        if chunks[k - 1][-1] > chunks[k][0]:
-                            chunks[k - 1] = chunks[k - 1][:-1] + chunks[k][1:]
-                            del chunks[k]
-                    # Escape backslashes and hyphens for set difference (--).
-                    # Hyphens that create ranges shouldn't be escaped.
-                    stuff = "-".join(s.replace("\\", r"\\").replace("-", r"\-") for s in chunks)
-                # Escape set operations (&&, ~~ and ||).
-                stuff = sub(r"([&~|])", r"\\\1", stuff)
+                stuff = g[i:j].replace("\\", "\\\\")
                 i = j + 1
-                if not stuff:
-                    # Empty range: never match.
-                    add("(?!)")
-                elif stuff == "!":
-                    # Negated empty range: match any character.
-                    add(".")
-                else:
-                    if stuff[0] == "!":
-                        stuff = "^" + stuff[1:]
-                    elif stuff[0] in ("^", "["):
-                        stuff = "\\" + stuff
-                    add(f"[{stuff}]")
+                if stuff[0] == "!":
+                    stuff = "^" + stuff[1:]
+                elif stuff[0] == "^":
+                    stuff = "\\" + stuff
+                res = "%s[%s]" % (res, stuff)
         else:
-            add(escape(c))
-    assert i == n
+            res = res + escape(c)
+    if at_start:
+        if base:
+            res = "^" + escape(base) + "/" + res + r"\Z"
+        else:
+            res = "^" + res + r"\Z"
+    else:
+        if base:
+            res = r"(?ms)\A" + escape(base) + r"/(?:|.+/)" + res + r"\Z"
+        else:
+            res = r"(?:|.+/)" + res + r"\Z"
+        assert at_start in (None, False)
 
-    # Deal with STARs.
-    inp = res
-    res = []
-    add = res.append
-    i, n = 0, len(inp)
-    # Fixed pieces at the start?
-    while i < n and inp[i] not in (STAR, DSTAR):
-        add(inp[i])
-        i += 1
-    # Now deal with STAR fixed STAR fixed ...
-    # For an interior `STAR fixed` pairing, we want to do a minimal
-    # .*? match followed by `fixed`, with no possibility of backtracking.
-    # Atomic groups ("(?>...)") allow us to spell that directly.
-    # Note: people rely on the undocumented ability to join multiple
-    # translate() results together via "|" to build large regexps matching
-    # "one of many" shell patterns.
-    while i < n:
-        assert inp[i] in (STAR, DSTAR)
-        STA = inp[i]
-        PAT = RESEP if STA is STAR else ".*"
-        i += 1
-        if i == n:
-            add(PAT)
-            break
-        assert inp[i] not in (STAR, DSTAR)
-        fixed = []
-        while i < n and inp[i] not in (STAR, DSTAR):
-            fixed.append(inp[i])
-            i += 1
-        fixed = "".join(fixed)
-        if i == n:
-            add(PAT)
-            add(fixed)
-        elif STA is DSTAR:
-            add(f"{PAT}{fixed}")
-        else:
-            add(f"{PAT}{fixed}")
-    assert i == n
-    res = "".join(res)
-    return rf"(?s:{res})\Z"
+    return (res, dir_only, neg, g)
 
 
 def filesizep(s: str):

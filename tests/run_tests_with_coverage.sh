@@ -8,7 +8,7 @@ rm -f "$COVERAGE_FILE"*
 rm -rf $DOCS
 
 # Run tests with coverage
-python -m pytest -s tests/ \
+python -m pytest tests/ \
   --cov=$NAME \
   --cov-append \
   --cov-report=term-missing || exit 1
