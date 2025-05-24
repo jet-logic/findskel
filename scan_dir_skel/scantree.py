@@ -2,7 +2,7 @@ from os import DirEntry
 from .main import Main
 from .walkdir import WalkDir
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 
 class ScanTree(WalkDir, Main):
@@ -10,15 +10,19 @@ class ScanTree(WalkDir, Main):
     _re_includes: list[object] | None = None
     _file_sizes: list[object] | None = None
     _dir_depth: tuple[int, int] | None = None
+    _paths_from: list[str] | None = None
 
     def add_arguments(self, argp):
+
         group = argp.add_argument_group("Traversal")
+        # --depth-first
         group.add_argument(
-            "--bottom-up",
+            "--depth-first",
             action="store_true",
-            dest="bottom_up",
+            dest="depth_first",
             help="Process each directory's contents before the directory itself",
         )
+        # --follow-symlinks
         group.add_argument(
             "--follow-symlinks",
             dest="follow_symlinks",
@@ -26,7 +30,7 @@ class ScanTree(WalkDir, Main):
             help="Follow symbolic links",
             action="store_const",
         )
-
+        # --act/--dry-run
         try:
             b = self.dry_run
         except AttributeError:
@@ -41,11 +45,9 @@ class ScanTree(WalkDir, Main):
                     dest="dry_run",
                     help="test run only",
                 )
-
+        # --exclude, --include
         if self._re_excludes is not None or self._re_includes is not None:
             from re import compile as regex
-
-            # from fnmatch import translate as globre
 
             group.add_argument(
                 "--exclude",
@@ -63,7 +65,7 @@ class ScanTree(WalkDir, Main):
                 dest="_re_includes",
                 help="include matching GLOB",
             )
-
+        # --sizes
         if self._file_sizes is not None:
             group.add_argument(
                 "--sizes",
@@ -73,6 +75,7 @@ class ScanTree(WalkDir, Main):
                 help="Filter sizes: 1k.., 4g, ..2mb",
                 metavar="min..max",
             )
+        # --depth
         if self._dir_depth is not None:
             group.add_argument(
                 "--depth",
@@ -81,8 +84,18 @@ class ScanTree(WalkDir, Main):
                 help="Check for depth: 2.., 4, ..3",
                 metavar="min..max",
             )
-
-        argp.add_argument("paths", metavar="PATH", nargs="*")
+        # --paths-from
+        if self._paths_from is not None:
+            group.add_argument(
+                "--paths-from",
+                metavar="FILE",
+                action="append",
+                dest="_paths_from",
+                default=[],
+                help="read list of source-file names from FILE",
+            )
+        # PATH ...
+        argp.add_argument(metavar="PATH", dest="_paths", nargs="*")
         return super().add_arguments(argp)
 
     def ready(self) -> None:
@@ -142,7 +155,34 @@ class ScanTree(WalkDir, Main):
         return super().ready()
 
     def start(self):
-        self.start_walk(self.paths)
+        raise DeprecationWarning("Change your code!")
+        self.start_walk(self._paths)
+
+    def _walk_paths(self):
+        paths_from: list[str] = getattr(self, "_paths_from", None)
+        if paths_from:
+            for x in paths_from:
+                # print(f"_paths_from {x!r}", file=stderr)
+                with as_source(x, "r") as f:
+                    for e in f:
+                        e = e.strip()
+                        if e.startswith("#") or not e:
+                            continue
+                        # print(f"\t- {e!r}", file=stderr)
+                        self._start_path(e)
+        #
+        paths: list[str] = getattr(self, "_paths", None)
+        if paths:
+            for p in paths:
+                self._start_path(p)
+
+
+def as_source(path="-", mode="rb"):
+    if path != "-":
+        return open(path, mode)
+    from sys import stdin
+
+    return stdin.buffer if "b" in mode else stdin
 
 
 def globre(pat):

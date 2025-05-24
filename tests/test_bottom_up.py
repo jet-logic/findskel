@@ -44,43 +44,35 @@ class TestListBottomUp(unittest.TestCase):
             print(x)
         return a
 
-    # @unittest.skip("Enable to test default top-down behavior")
+    @unittest.skip("Enable to test default top-down behavior")
     def test_default_top_down(self):
         """Test that default behavior is top-down traversal."""
         output = self.run_list_command()
 
         # Find positions of files in output
         root_pos = output.index(self.root_file) if self.root_file in output else -1
-        subdir_pos = (
-            output.index(self.subdir_file) if self.subdir_file in output else -1
-        )
-        subsubdir_pos = (
-            output.index(self.subsubdir_file) if self.subsubdir_file in output else -1
-        )
+        subdir_pos = output.index(self.subdir_file) if self.subdir_file in output else -1
+        subsubdir_pos = output.index(self.subsubdir_file) if self.subsubdir_file in output else -1
 
         # In top-down, parent directories appear before their contents
         self.assertLess(root_pos, subdir_pos)
         self.assertLess(subdir_pos, subsubdir_pos)
 
-    # @unittest.skip("Enable to test bottom-up behavior")
+    @unittest.skip("Enable to test bottom-up behavior")
     def test_bottom_up(self):
         """Test that --bottom-up lists contents before parents."""
         output = self.run_list_command("--bottom-up")
 
         # Find positions of files in output
         root_pos = output.index(self.root_file) if self.root_file in output else -1
-        subdir_pos = (
-            output.index(self.subdir_file) if self.subdir_file in output else -1
-        )
-        subsubdir_pos = (
-            output.index(self.subsubdir_file) if self.subsubdir_file in output else -1
-        )
+        subdir_pos = output.index(self.subdir_file) if self.subdir_file in output else -1
+        subsubdir_pos = output.index(self.subsubdir_file) if self.subsubdir_file in output else -1
 
         # In bottom-up, children appear before parents
         self.assertGreater(root_pos, subdir_pos)
         self.assertGreater(subdir_pos, subsubdir_pos)
 
-    # @unittest.skip("Enable to test combined with other options")
+    @unittest.skip("Enable to test combined with other options")
     def test_bottom_up_with_other_options(self):
         """Test that --bottom-up works with other options like --depth."""
         output = self.run_list_command("--bottom-up", "--depth", "..2")
@@ -92,9 +84,7 @@ class TestListBottomUp(unittest.TestCase):
 
         # Verify bottom-up order is maintained
         root_pos = output.index(self.root_file) if self.root_file in output else -1
-        subdir_pos = (
-            output.index(self.subdir_file) if self.subdir_file in output else -1
-        )
+        subdir_pos = output.index(self.subdir_file) if self.subdir_file in output else -1
         print([self.root_file, self.subdir_file])
         self.assertGreater(root_pos, subdir_pos, output)
 

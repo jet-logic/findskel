@@ -14,7 +14,7 @@ class Empty(ScanTree):
         self._re_includes = []
 
     def add_arguments(self, argp):
-        self.bottom_up = True
+        self.depth_first = True
         self.which = 0
         self.remove = False
         if not argp.description:
@@ -73,6 +73,9 @@ class Empty(ScanTree):
         #         unlink(de.path)
         # else:
         print(de.path)
+
+    def start(self):
+        self._walk_paths()
 
 
 (__name__ == "__main__") and Empty().main()

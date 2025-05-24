@@ -115,5 +115,8 @@ class InsertLines(ScanTree):
 
         return super().done()
 
+    def start(self):
+        self._walk_paths()
+
 
 (__name__ == "__main__") and InsertLines().main()

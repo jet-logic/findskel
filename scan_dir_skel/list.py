@@ -12,51 +12,80 @@ class ListDir(ScanTree):
         super().__init__()
         self._file_sizes = []
         self._dir_depth = ()
-        self._re_excludes = []
-        self._re_includes = []
-        self._globs: list[tuple[bool, str, bool, str]] = []
+        self._glob_excludes = []
+        self._glob_includes = []
+        self._paths_from = []
 
     def add_arguments(self, argp):
-        # self.bottom_up = True
         self.abs_path = True
 
         if not argp.description:
             argp.description = "List files under directory"
-        from re import escape
 
-        argp.add_argument(
-            "--glob",
-            metavar="GLOB",
-            action="append",
-            type=lambda s: globre3(s, "", escape),
-            dest="_globs",
-            help="matching GLOB",
-        )
+        _glob_includes: list[str] = getattr(self, "_glob_includes", None)
+        _glob_excludes: list[str] = getattr(self, "_glob_excludes", None)
+
+        if _glob_excludes is not None or _glob_includes is not None:
+
+            argp.add_argument(
+                "--exclude",
+                metavar="GLOB",
+                action="append",
+                # type=lambda s: globre3(s, escape=escape, no_neg=True),
+                dest="_glob_excludes",
+                help="exclude matching GLOB",
+            )
+            argp.add_argument(
+                "--include",
+                metavar="GLOB",
+                action="append",
+                # type=lambda s: globre3(s, escape=escape, no_neg=True),
+                dest="_glob_includes",
+                help="include matching GLOB",
+            )
         return super().add_arguments(argp)
 
     def ready(self) -> None:
-        print("bottom_up", self.bottom_up, file=stderr)
-        print("_globs", self._globs, file=stderr)
-        if self._globs:
+        _glob_includes: list[str] = getattr(self, "_glob_includes", None)
+        _glob_excludes: list[str] = getattr(self, "_glob_excludes", None)
+        # print("_glob_includes", _glob_includes, file=stderr)
+        # print("_glob_excludes", _glob_excludes, file=stderr)
+        if _glob_includes or _glob_excludes:
             from os.path import relpath, sep
+            from re import compile as regex, escape
 
-            def makef(m, dir_only, neg):
+            def makef(s: str):
+                (rex, dir_only, neg, g) = globre3(s, escape=escape, no_neg=True)
+                m = regex(rex)
+
                 def col(r="", is_dir=False):
                     return (is_dir if dir_only else True) and m.search(r)
 
                 return col
 
-            globs = [makef(re.compile(rex), dir_only, neg) for (neg, rex, dir_only, g) in self._globs]
+            # globre3(s, escape=escape, no_neg=True),
+            # tuple[bool, str, bool, str]
+            inc = [makef(s) for s in _glob_includes]
+            exc = [makef(s) for s in _glob_excludes]
 
             def check_glob(e: DirEntry, **kwargs):
                 is_dir = e.is_dir()
-                r = relpath(e.path, self._root_dir)
+                rel = relpath(e.path, self._root_dir)
                 # print("check_glob", e, r, s)
-                if not any(m(r, is_dir) for m in globs):
-                    return False
+                # if not any(m(rel, is_dir) for m in globs):
+                #     return False
+                if inc:
+                    if not any(m(rel, is_dir) for m in inc):
+                        return False
+                if exc:
+                    if any(m(rel, is_dir) for m in exc):
+                        return False
 
             self.on_check_accept(check_glob)
         return super().ready()
+
+    def start(self):
+        self._walk_paths()
 
     def process_entry(self, de: DirEntry | FileSystemEntry) -> None:
         if self.abs_path:
@@ -65,26 +94,26 @@ class ListDir(ScanTree):
             super().process_entry(de)
 
 
-def globre3(g: str, base="", escape=lambda x: ""):
+def globre3(g: str, base="", escape=lambda x: "", no_neg=False):
 
-    if g.startswith("!"):
+    if no_neg is False and g.startswith("!"):
         neg = True
         g = g[1:]
     else:
         neg = None
     if g.endswith("/"):
         g = g[0:-1]
-        dirOnly = True
+        dir_only = True
     else:
-        dirOnly = None
+        dir_only = None
     i = g.find("/")
     if i < 0:
-        atStart = False
+        at_start = False
     elif i == 0:
-        atStart = True
+        at_start = True
         g = g[1:]
     else:
-        atStart = None
+        at_start = None
     i, n = 0, len(g)
     res = ""
     while i < n:
@@ -97,7 +126,6 @@ def globre3(g: str, base="", escape=lambda x: ""):
                 if i < n and "/" == g[i]:
                     i = i + 1
                     res += "/?"
-
             else:
                 res = res + "[^/]+"
         elif c == "?":
@@ -122,9 +150,9 @@ def globre3(g: str, base="", escape=lambda x: ""):
                 res = "%s[%s]" % (res, stuff)
         else:
             res = res + escape(c)
-    if atStart:
+    if at_start:
         if base:
-            res = escape(base) + "/" + res + r"\Z"
+            res = "^" + escape(base) + "/" + res + r"\Z"
         else:
             res = "^" + res + r"\Z"
     else:
@@ -132,15 +160,9 @@ def globre3(g: str, base="", escape=lambda x: ""):
             res = r"(?ms)\A" + escape(base) + r"/(?:|.+/)" + res + r"\Z"
         else:
             res = r"(?:|.+/)" + res + r"\Z"
-        assert atStart in (None, False)
-    # from os.path import sep
+        assert at_start in (None, False)
 
-    # if sep != "/":
-    #     res = res.replace("/", escape(sep))
-
-    print("REGX", res, g)
-
-    return (neg, res, dirOnly, g)
+    return (res, dir_only, neg, g)
 
 
 # glob*
