@@ -1,12 +1,10 @@
 from os import DirEntry
 from pathlib import Path
-import re
-from sys import stderr
 from .walkdir import FileSystemEntry
-from .scantree import ScanTree
+from .findskel import FindSkel
 
 
-class ListDir(ScanTree):
+class ListDir(FindSkel):
 
     def __init__(self) -> None:
         super().__init__()
@@ -31,7 +29,7 @@ class ListDir(ScanTree):
     def start(self):
         self._walk_paths()
 
-    def process_entry(self, de: DirEntry | FileSystemEntry) -> None:
+    def process_entry(self, de: "DirEntry | FileSystemEntry") -> None:
         if self.abs_path:
             print((Path(self._root_dir) / de.path).absolute())
         else:

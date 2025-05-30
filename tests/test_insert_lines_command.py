@@ -29,7 +29,7 @@ class TestInsertLinesCommand(unittest.TestCase):
 
     def run_insert_lines(self, *args, capture_output=False):
         """Helper to run the insert_lines command"""
-        cmd = ["python", "-m", "scan_dir_skel.insert_lines", *args]
+        cmd = ["python", "-m", "findskel.insert_lines", *args]
         print("RUN:", cmd)
         result = subprocess.run(cmd, cwd=self.test_dir, capture_output=capture_output, text=capture_output)
         return result

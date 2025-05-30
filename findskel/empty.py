@@ -2,10 +2,10 @@ from os import DirEntry
 from os import scandir, rmdir, unlink
 from sys import stderr
 from .walkdir import FileSystemEntry
-from .scantree import ScanTree
+from .findskel import FindSkel
 
 
-class Empty(ScanTree):
+class Empty(FindSkel):
     def __init__(self) -> None:
         super().__init__()
         self._file_sizes = []
@@ -46,7 +46,7 @@ class Empty(ScanTree):
         self.on_check_accept(check)
         return super().add_arguments(argp)
 
-    def process_entry(self, de: DirEntry | FileSystemEntry) -> None:
+    def process_entry(self, de: "DirEntry | FileSystemEntry") -> None:
 
         if de.is_file():
             if self.which not in (1, 0):

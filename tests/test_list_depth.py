@@ -57,7 +57,7 @@ class TestListCommandWithDepth(unittest.TestCase):
 
     def run_list_command(self, *args):
         """Run the list command and return output as list of paths"""
-        cmd = [sys.executable, "-m", "scan_dir_skel.list", *args, self.temp_dir]
+        cmd = [sys.executable, "-m", "findskel.list", *args, self.temp_dir]
         print("RUN", cmd)
         result = subprocess.run(
             cmd,
@@ -80,6 +80,14 @@ class TestListCommandWithDepth(unittest.TestCase):
     def test_no_depth_limit(self):
         # Should return all files
         ls = self.run_list_command()
+        paths = []
+        for root, dirs, files in os.walk(self.dir, topdown=False):
+            for name in files:
+                paths.append(str(self.dir / root / name))
+            for name in dirs:
+                paths.append(str(self.dir / root / name))
+        self.assertSetEqual(set(ls), set(paths))
+        ls = self.run_list_command("--depth", "")
         paths = []
         for root, dirs, files in os.walk(self.dir, topdown=False):
             for name in files:

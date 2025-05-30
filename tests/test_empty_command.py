@@ -38,7 +38,7 @@ class TestEmptyCommand(unittest.TestCase):
 
     def run_empty_command(self, *args, **kwargs):
         """Helper to run the empty command"""
-        cmd = ["python", "-m", "scan_dir_skel.empty", *args]
+        cmd = ["python", "-m", "findskel.empty", *args]
         print("RUN", cmd)
         result = subprocess.run(cmd, cwd=self.test_dir, **kwargs)
         return result
@@ -58,9 +58,7 @@ class TestEmptyCommand(unittest.TestCase):
     # @unittest.skip
     def test_list_empty_dirs(self):
         """Test listing empty directories"""
-        result = self.run_empty_command(
-            "--dirs", self.test_dir, capture_output=True, text=True
-        )
+        result = self.run_empty_command("--dirs", self.test_dir, capture_output=True, text=True)
         # print(result.stdout)
         self.assertEqual(result.returncode, 0)
         self.assertIn(str(self.empty_dir.name), result.stdout)
@@ -73,9 +71,7 @@ class TestEmptyCommand(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0)
         self.assertFalse(self.empty_file.exists(), "Empty file was not removed")
-        self.assertTrue(
-            self.non_empty_file.exists(), "Non-empty file was incorrectly removed"
-        )
+        self.assertTrue(self.non_empty_file.exists(), "Non-empty file was incorrectly removed")
 
     # @unittest.skip
     def test_remove_empty_dirs(self):
@@ -84,9 +80,7 @@ class TestEmptyCommand(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0)
         self.assertFalse(self.empty_dir.exists(), "Empty directory was not removed")
-        self.assertTrue(
-            self.non_empty_dir.exists(), "Non-empty directory was incorrectly removed"
-        )
+        self.assertTrue(self.non_empty_dir.exists(), "Non-empty directory was incorrectly removed")
 
     # @unittest.skip
     def test_files_dirs(self):

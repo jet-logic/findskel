@@ -143,4 +143,3 @@ cython_debug/
 *.zip
 *.tgz
 old/
-scan_dir_skel/prev/

@@ -1,13 +1,13 @@
 from os import DirEntry
 from re import compile as regex
 from .walkdir import FileSystemEntry
-from .scantree import ScanTree
+from .findskel import FindSkel
 
 BEGIN = regex(r"\s*(?:#|\/\*+)\s*(?:<INSERT\s+([^\s\>]+)\s*\>|<<<\s+([^\s]+))\s*")
 END = regex(r"\s*(?:#|\/\*|)\s*(?:</INSERT>|>>>)")
 
 
-def check(file: str, db: dict[str, dict[str, str]]):
+def check(file: str, db: "dict[str, dict[str, str]]"):
     # print("CHECK", file)
     with open(file, "r") as r:
         it = iter(r)
@@ -31,7 +31,7 @@ def check(file: str, db: dict[str, dict[str, str]]):
             line = next(it, None)
 
 
-def replace(file: str, db: dict[str, str], dry_run: bool):
+def replace(file: str, db: "dict[str, str]", dry_run: bool):
     lines = []
     with open(file, "r") as r:
         it = iter(r)
@@ -62,10 +62,10 @@ def replace(file: str, db: dict[str, str], dry_run: bool):
             print(line, end="")
 
 
-class InsertLines(ScanTree):
+class InsertLines(FindSkel):
     def __init__(self):
-        self.db: dict[str, dict[str, str]] = {}
-        self.search: list[str] = []
+        self.db: "dict[str, dict[str, str]]" = {}
+        self.search: "list[str]" = []
         self.dry_run = True
 
     def add_arguments(self, argp):
@@ -84,7 +84,7 @@ class InsertLines(ScanTree):
     def check_accept(self, e: DirEntry) -> bool:
         return super().check_accept(e) and e.is_file()
 
-    def process_entry(self, de: DirEntry | FileSystemEntry) -> None:
+    def process_entry(self, de: "DirEntry | FileSystemEntry") -> None:
         return check(de.path, self.db)
 
     def done(self) -> None:

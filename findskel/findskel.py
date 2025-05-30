@@ -5,12 +5,12 @@ from .walkdir import WalkDir
 __version__ = "0.0.3"
 
 
-class ScanTree(WalkDir, Main):
-    _glob_excludes: list[str] | None = None
-    _glob_includes: list[str] | None = None
-    _file_sizes: list[object] | None = None
-    _dir_depth: tuple[int, int] | None = None
-    _paths_from: list[str] | None = None
+class FindSkel(WalkDir, Main):
+    _glob_excludes: "list[str] | None" = None
+    _glob_includes: "list[str] | None" = None
+    _file_sizes: "list[object] | None" = None
+    _dir_depth: "tuple[int, int] | None" = None
+    _paths_from: "list[str] | None" = None
 
     def add_arguments(self, argp):
 
@@ -274,13 +274,15 @@ def globre3(g: str, base="", escape=lambda x: "", no_neg=False):
 
 
 def filesizep(s: str):
-    if s[0].isnumeric():
-        q = s.lower().rstrip("b")
+    if s[-1].isalpha():
+        q = s.lower()
+        if q.endswith("b"):
+            q = q[0:-1]
         for i, v in enumerate("kmgtpezy"):
             if q[-1].endswith(v):
-                return float(q[0:-1]) * (2 ** (10 * (i + 1)))
-        return float(q)
-    return float(s)
+                return int(float(q[0:-1]) * (2 ** (10 * (i + 1))))
+        return int(q)
+    return int(s)
 
 
 def sizerangep(s=""):

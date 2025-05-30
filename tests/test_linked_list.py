@@ -2,7 +2,7 @@
 import unittest
 
 
-def reverse_iterative(head: tuple[str, object] | None) -> tuple[str, object] | None:
+def reverse_iterative(head: "tuple[str, object] | None") -> "tuple[str, object] | None":
     prev = None
     current = head
 
@@ -25,7 +25,7 @@ def traverse_iterative(head):
         current = next_node  # Move to next node
 
 
-def prepend(head: tuple[str, object] | None, new_data: str) -> tuple[str, object]:
+def prepend(head: "tuple[str, object] | None", new_data: str) -> "tuple[str, object]":
     """Adds a new node at the beginning of the linked list."""
     return (new_data, head)
 

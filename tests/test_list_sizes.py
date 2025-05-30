@@ -34,14 +34,10 @@ class TestListCommandWithSizes(unittest.TestCase):
 
     def run_list_command(self, *args, path=""):
         """Run the list command and return output as list of lines"""
-        cmd = [sys.executable, "-m", "scan_dir_skel.list", *args, path or self.temp_dir]
+        cmd = [sys.executable, "-m", "findskel.list", *args, path or self.temp_dir]
         print("RUN", cmd)
-        result = subprocess.run(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
-        self.assertEqual(
-            result.returncode, 0, f"Command failed with stderr: {result.stderr}"
-        )
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        self.assertEqual(result.returncode, 0, f"Command failed with stderr: {result.stderr}")
         a = [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
         for x in a:

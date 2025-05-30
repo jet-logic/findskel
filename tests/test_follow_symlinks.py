@@ -38,7 +38,7 @@ class TestListCommandWithSymlinks(unittest.TestCase):
 
     def run_list_command(self, *args, path=None):
         """Helper to run the list command and return output."""
-        cmd = ["python", "-m", "scan_dir_skel.list", *args, path or self.test_dir]
+        cmd = ["python", "-m", "findskel.list", *args, path or self.test_dir]
         print("RUN", cmd)
         result = run(cmd, stdout=PIPE, stderr=PIPE, text=True)
         a = [line.strip() for line in result.stdout.splitlines()]

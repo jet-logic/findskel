@@ -1,5 +1,5 @@
 [project]
-name = "scan_dir_skel"
+name = "findskel"
 version = "0.0.2"
 description = ""
 authors = [

@@ -5,10 +5,9 @@ import tempfile
 import subprocess
 from pathlib import Path
 
-from scan_dir_skel.scantree import globre3
+from findskel.findskel import globre3
 from re import escape
 
-# print(globre3("file[!0-9].txt", escape=escape))
 
 Windows = os.environ.get("RUNNER_OS") == "Windows"
 
@@ -17,7 +16,7 @@ class TestListCommand(unittest.TestCase):
 
     def run_list_command(self, *args):
         """Helper method to run the list command, print command and output"""
-        cmd = [str(x) for x in ["python", "-m", "scan_dir_skel.list", *args]]
+        cmd = [str(x) for x in ["python", "-m", "findskel.list", *args]]
 
         # Print the command being executed
         print("\n\033[1mExecuting command:\033[0m")
@@ -125,7 +124,8 @@ class TestListCommand(unittest.TestCase):
             ensure(top / "file6.md")
             ensure(top / "file9.md")
             ensure(top / "file{7,9}.md")
-
+            ensure(top / "file[.md")
+            ensure(top / "file].md")
             if not Windows:
                 ls1 = self.run_list_command(top, "--include", "file.(txt|csv)")
                 ls2 = [*map(str, [top / "file.(txt|csv)"])]
@@ -137,6 +137,14 @@ class TestListCommand(unittest.TestCase):
             #
             ls1 = self.run_list_command(top, "--include", "file[^79].md")
             ls2 = [*map(str, [top / "file^.md", top / "file9.md"])]
+            self.assertEqual(set(ls1), set(ls2))
+            #
+            ls1 = self.run_list_command(top, "--include", r"file[]^].md")
+            ls2 = [*map(str, [top / "file^.md", top / "file].md"])]
+            self.assertEqual(set(ls1), set(ls2))
+            #
+            ls1 = self.run_list_command(top, "--include", r"file[[9].md")
+            ls2 = [*map(str, [top / "file9.md", top / "file[.md"])]
             self.assertEqual(set(ls1), set(ls2))
             # Pattern with backslashes (Windows paths)
             if Windows:
