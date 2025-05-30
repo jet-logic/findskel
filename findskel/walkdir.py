@@ -34,12 +34,12 @@ class FileSystemEntry:
 
 class WalkDir:
     follow_symlinks: int = 0
-    depth_first: bool | None = False
+    depth_first: bool = False
     carry_on: bool = True
     #
     _root_dir: str = ""
-    _check_accept: tuple[object, tuple[object, object] | None] | None = None
-    _check_enter: tuple[object, tuple[object, object] | None] | None = None
+    _check_accept: "tuple[object, tuple[object, object] | None] | None" = None
+    _check_enter: "tuple[object, tuple[object, object] | None] | None" = None
 
     def check_accept(self, e: DirEntry, depth: int) -> bool:
         cur = self._check_accept
@@ -86,7 +86,7 @@ class WalkDir:
     def create_entry(self, path: str) -> FileSystemEntry:
         return FileSystemEntry(path)
 
-    def process_entry(self, de: DirEntry | FileSystemEntry) -> None:
+    def process_entry(self, de: "DirEntry | FileSystemEntry") -> None:
         print(de.path)
 
     def _walk_breadth_first(self, src: str, depth: int = 0) -> Generator[DirEntry, None, None]:

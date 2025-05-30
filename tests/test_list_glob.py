@@ -32,7 +32,7 @@ class TestListCommand(unittest.TestCase):
 
     def run_list_command(self, *args):
         """Helper method to run the list command, print command and output"""
-        cmd = ["python", "-m", "scan_dir_skel.list", *args, self.test_dir]
+        cmd = ["python", "-m", "findskel.list", *args, self.test_dir]
 
         # Print the command being executed
         print("\n\033[1mExecuting command:\033[0m")

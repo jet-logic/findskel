@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  Linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,7 +14,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.8"
 
       - name: Install dependencies
         run: |
@@ -26,7 +26,7 @@ jobs:
         run: sh tests/run_tests_with_coverage.sh
 
       - name: Run mypy
-        run: mypy scan_dir_skel || true
+        run: mypy findskel || true
 
       - name: Run flake8
         run: flake8 --ignore=E501 || true

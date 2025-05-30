@@ -1,7 +1,7 @@
 #!/bin/env python3
 import unittest
 
-from scan_dir_skel.scantree import filesizep
+from findskel.findskel import filesizep
 
 
 class TestFilesizep(unittest.TestCase):
@@ -13,17 +13,24 @@ class TestFilesizep(unittest.TestCase):
         self.assertEqual(filesizep("1k"), 1024)
         self.assertEqual(filesizep("2K"), 2048)
         self.assertEqual(filesizep("1.5k"), 1536)
+        self.assertEqual(filesizep("2Kb"), 2048)
+        self.assertEqual(filesizep(".5K"), 1024 / 2)
+        self.assertEqual(filesizep("2 KB"), 1024 * 2)
 
     def test_megabytes(self):
         self.assertEqual(filesizep("1m"), 1048576)
         self.assertEqual(filesizep("2M"), 2097152)
+        self.assertEqual(filesizep("2 mB"), 1024 * 1024 * 2)
 
     def test_gigabytes(self):
         self.assertEqual(filesizep("1g"), 1073741824)
         self.assertEqual(filesizep("3G"), 3221225472)
+        self.assertEqual(filesizep("1GB"), 1073741824)
+        self.assertEqual(filesizep(".25GB"), 1073741824 / 4)
 
     def test_terabytes(self):
         self.assertEqual(filesizep("1t"), 1099511627776)
+        self.assertEqual(filesizep("1.0t"), 1099511627776)
 
     def test_petabytes(self):
         self.assertEqual(filesizep("1p"), 1125899906842624)
@@ -39,7 +46,7 @@ class TestFilesizep(unittest.TestCase):
 
     def test_no_unit(self):
         self.assertEqual(filesizep("1024"), 1024.0)
-        self.assertEqual(filesizep("3.14"), 3.14)
+        self.assertEqual(filesizep("1208925819614629174706176"), 1208925819614629174706176)
 
     def test_invalid_input(self):
         with self.assertRaises(ValueError):
@@ -48,11 +55,20 @@ class TestFilesizep(unittest.TestCase):
             filesizep("k")
         with self.assertRaises(ValueError):
             filesizep("1x")  # invalid unit
+        with self.assertRaises(ValueError):
+            filesizep("1BB")
+        with self.assertRaises(ValueError):
+            filesizep("9xb")
+        with self.assertRaises(ValueError):
+            filesizep(".b")
+        with self.assertRaises(ValueError):
+            filesizep("1.2b")
 
     def test_case_insensitive(self):
         self.assertEqual(filesizep("1K"), 1024)
         self.assertEqual(filesizep("1kB"), 1024)
         self.assertEqual(filesizep("1Kb"), 1024)
+        self.assertEqual(filesizep("1KB"), 1024)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 #!/bin/env python3
 import unittest
 
-from scan_dir_skel.scantree import sizerangep
+from findskel.findskel import sizerangep
 
 
 def size_range_check(s=""):

@@ -5,12 +5,18 @@ import tempfile
 import subprocess
 from pathlib import Path
 
+from findskel.findskel import globre3
+from re import escape
+
+
+Windows = os.environ.get("RUNNER_OS") == "Windows"
+
 
 class TestListCommand(unittest.TestCase):
 
     def run_list_command(self, *args):
         """Helper method to run the list command, print command and output"""
-        cmd = [str(x) for x in ["python", "-m", "scan_dir_skel.list", *args]]
+        cmd = [str(x) for x in ["python", "-m", "findskel.list", *args]]
 
         # Print the command being executed
         print("\n\033[1mExecuting command:\033[0m")
@@ -33,67 +39,62 @@ class TestListCommand(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             top = Path(tmp)
-            ensure(top.joinpath("A", "B", "C", "img1.png"))
-            ensure(top.joinpath("A", "B", "img2.png"))
-            ensure(top.joinpath("A", "img3.png"))
+            f1 = ensure(top.joinpath("A", "B", "C", "img1.png"))
+            f2 = ensure(top.joinpath("A", "B", "img2.png"))
+            f3 = ensure(top.joinpath("A", "img3.png"))
             ###
             lines = self.run_list_command(top, "--include", "*.png")
-            for x in lines:
-                self.assertRegex(x, r".+(?:/A/img3.png|/A/B/C/img1.png|/A/B/img2.png)$")
+            self.assertSetEqual(set(lines), set([str(x) for x in (f1, f2, f3)]))
             ###
             p1 = ensure(top.joinpath("A", "paths"))
             p1.write_text(str(top.joinpath("A", "B", "C")) + "\n#" + str(top.joinpath("A")))
             lines = self.run_list_command("--include", "*.png", "--paths-from", p1)
-            self.assertEqual(len(lines), 1)
-            for x in lines:
-                self.assertRegex(x, r".+(?:/A/B/C/img1.png)$")
+            self.assertSetEqual(set(lines), set([str(x) for x in (f1,)]))
             ###
             p1 = ensure(top.joinpath("A", "paths"))
             p1.write_text(str(top.joinpath("A", "B", "img2.png")) + "\n#" + str(top.joinpath("A")))
             lines = self.run_list_command("--include", "*.png", "--paths-from", p1)
-            self.assertEqual(len(lines), 1)
-            for x in lines:
-                self.assertRegex(x, r".+(?:/A/B/img2.png)$")
+            self.assertSetEqual(set(lines), set([str(x) for x in (f2,)]))
 
     def test_basic_globs(self):
         ## test_basic_globs
         with tempfile.TemporaryDirectory() as tmp:
             top = Path(tmp)
-            ensure(top / "file.txt")
-            ensure(top / "image.txt")
-            ensure(top / "file.csv")
-            for x in self.run_list_command(top, "--include", "*.txt"):
-                self.assertRegex(x, r".+(?:/file.txt|/image.txt)$")
+            f1 = ensure(top / "file.txt")
+            f2 = ensure(top / "image.txt")
+            f3 = ensure(top / "file.csv")
+            ls = self.run_list_command(top, "--include", "*.txt")
+            self.assertSetEqual(set(ls), set(str(x) for x in (f1, f2)))
         ## test_basic_globs 2
         with tempfile.TemporaryDirectory() as tmp:
             top = Path(tmp)
-            ensure(top / "file1.txt")
-            ensure(top / "fileA.txt")
-            ensure(top / "file.txt")
-            ensure(top / "file12.txt")
-            for x in self.run_list_command(top, "--include", "file?.txt"):
-                self.assertRegex(x, r".+(?:/file1.txt|/fileA.txt)$")
+            f1 = ensure(top / "file1.txt")
+            f2 = ensure(top / "fileA.txt")
+            f3 = ensure(top / "file.txt")
+            f4 = ensure(top / "file12.txt")
+            ls = self.run_list_command(top, "--include", "file?.txt")
+            self.assertSetEqual(set(ls), set(str(x) for x in (f1, f2)))
         ## test_star_star_recursive
         with tempfile.TemporaryDirectory() as tmp:
             top = Path(tmp)
-            ensure(top / "script.py")
-            ensure(top / "src" / "script.py")
-            ensure(top / "src" / "utils" / "script.py")
+            f1 = ensure(top / "script.py")
+            f2 = ensure(top / "src" / "script.py")
+            f3 = ensure(top / "src" / "utils" / "script.py")
             ensure(top / "script.pyc")
-            for x in self.run_list_command(top, "--include", "file?.txt"):
-                self.assertRegex(x, r".+(?:/script\.py|/src/script\.py|/src/utils/script\.py)$")
+            ls = self.run_list_command(top, "--include", "**/*.py")
+            self.assertSetEqual(set(ls), set(str(x) for x in (f1, f2, f3)))
         # test_character_classes
         with tempfile.TemporaryDirectory() as tmp:
             top = Path(tmp)
-            ensure(top / "file1.txt")
-            ensure(top / "file5.txt")
-            ensure(top / "fileA.txt")
-            ensure(top / "file10.txt")
-            for x in self.run_list_command(top, "--include", "file[0-9].txt"):
-                self.assertRegex(x, r".+(?:/file1\.txt|/file5\.txt)$")
-            for x in self.run_list_command(top, "--include", "file[!0-9].txt"):
-                self.assertRegex(x, r".+(?:/fileA\.txt|/file1\.txt)$")
-
+            f1 = ensure(top / "file1.txt")
+            f2 = ensure(top / "file5.txt")
+            f3 = ensure(top / "fileA.txt")
+            f4 = ensure(top / "file10.txt")
+            f5 = ensure(top / "file9.txt")
+            ls = self.run_list_command(top, "--include", "file[0-8].txt")
+            self.assertSetEqual(set(ls), set(str(x) for x in (f1, f2)))
+            ls = self.run_list_command(top, "--include", "file[!0-8].txt")
+            self.assertSetEqual(set(ls), set(str(x) for x in (f5, f3)))
         with tempfile.TemporaryDirectory() as tmp:
             top = Path(tmp)
             # Test trailing separator (directory only)
@@ -117,23 +118,43 @@ class TestListCommand(unittest.TestCase):
             self.assertEqual(set(ls1), set(ls2))
 
             # Pattern with special regex chars
-            ensure(top / "file.(txt|csv)")
+            Windows or ensure(top / "file.(txt|csv)")
             ensure(top / "file.txt")
             ensure(top / "file^.md")
             ensure(top / "file6.md")
             ensure(top / "file9.md")
-            ls1 = self.run_list_command(top, "--include", "file.(txt|csv)")
-            ls2 = [*map(str, [top / "file.(txt|csv)"])]
+            ensure(top / "file{7,9}.md")
+            ensure(top / "file[.md")
+            ensure(top / "file].md")
+            if not Windows:
+                ls1 = self.run_list_command(top, "--include", "file.(txt|csv)")
+                ls2 = [*map(str, [top / "file.(txt|csv)"])]
+                self.assertEqual(set(ls1), set(ls2))
+            #
+            ls1 = self.run_list_command(top, "--include", "file{7,9}.md")
+            ls2 = [*map(str, [top / "file{7,9}.md"])]
             self.assertEqual(set(ls1), set(ls2))
+            #
             ls1 = self.run_list_command(top, "--include", "file[^79].md")
             ls2 = [*map(str, [top / "file^.md", top / "file9.md"])]
             self.assertEqual(set(ls1), set(ls2))
-            # Pattern with backslashes (Windows paths)
-            ensure(top / "C:\\Windows\\notepad.exe")
-            ensure(top / "C:\\Program Files\\notepad.exe")
-            ls1 = self.run_list_command(top, "--include", "C:\\Windows\\*.exe")
-            ls2 = [*map(str, [top / "C:\\Windows\\notepad.exe"])]
+            #
+            ls1 = self.run_list_command(top, "--include", r"file[]^].md")
+            ls2 = [*map(str, [top / "file^.md", top / "file].md"])]
             self.assertEqual(set(ls1), set(ls2))
+            #
+            ls1 = self.run_list_command(top, "--include", r"file[[9].md")
+            ls2 = [*map(str, [top / "file9.md", top / "file[.md"])]
+            self.assertEqual(set(ls1), set(ls2))
+            # Pattern with backslashes (Windows paths)
+            if Windows:
+                pass
+            else:
+                ensure(top / "C:\\Windows\\notepad.exe")
+                ensure(top / "C:\\Program Files\\notepad.exe")
+                ls1 = self.run_list_command(top, "--include", "C:\\Windows\\*.exe")
+                ls2 = [*map(str, [top / "C:\\Windows\\notepad.exe"])]
+                self.assertEqual(set(ls1), set(ls2))
 
 
 def ensure(x: Path):

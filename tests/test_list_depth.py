@@ -11,6 +11,7 @@ class TestListCommandWithDepth(unittest.TestCase):
     def setUp(self):
         # Create a temporary directory with nested structure
         self.temp_dir = tempfile.mkdtemp()
+        self.dir = Path(self.temp_dir)
 
         # Create directory structure:
         # temp_dir/
@@ -39,6 +40,7 @@ class TestListCommandWithDepth(unittest.TestCase):
                 if size > 0:
                     f.seek(size - 1)
                     f.write(b"\0")
+        # self.dir.walk
 
     def tearDown(self):
         # Clean up the temporary directory
@@ -55,7 +57,7 @@ class TestListCommandWithDepth(unittest.TestCase):
 
     def run_list_command(self, *args):
         """Run the list command and return output as list of paths"""
-        cmd = [sys.executable, "-m", "scan_dir_skel.list", *args, self.temp_dir]
+        cmd = [sys.executable, "-m", "findskel.list", *args, self.temp_dir]
         print("RUN", cmd)
         result = subprocess.run(
             cmd,
@@ -74,91 +76,98 @@ class TestListCommandWithDepth(unittest.TestCase):
             print(x.rstrip())
         return a
 
-    def get_relative_paths(self, output):
-        """Convert absolute paths to relative paths from temp_dir"""
-        return [str(Path(p).relative_to(self.temp_dir)) for p in output]
-
     # @unittest.skip
     def test_no_depth_limit(self):
         # Should return all files
-        output = self.run_list_command()
-        rel_paths = self.get_relative_paths(output)
-        self.assertEqual(len(rel_paths), 9)
-        for f in self.files:
-            self.assertIn(f.replace("/", os.sep), rel_paths)
+        ls = self.run_list_command()
+        paths = []
+        for root, dirs, files in os.walk(self.dir, topdown=False):
+            for name in files:
+                paths.append(str(self.dir / root / name))
+            for name in dirs:
+                paths.append(str(self.dir / root / name))
+        self.assertSetEqual(set(ls), set(paths))
+        ls = self.run_list_command("--depth", "")
+        paths = []
+        for root, dirs, files in os.walk(self.dir, topdown=False):
+            for name in files:
+                paths.append(str(self.dir / root / name))
+            for name in dirs:
+                paths.append(str(self.dir / root / name))
+        self.assertSetEqual(set(ls), set(paths))
 
     # @unittest.skip
     def test_depth_zero(self):
         # Only root level files
-        output = self.run_list_command("--depth", "1")
-        rel_paths = self.get_relative_paths(output)
-        self.assertIn("file1.txt", rel_paths)
-        self.assertIn("dir1", rel_paths)
-        self.assertIn("dir4", rel_paths)
-        self.assertEqual(len(rel_paths), 3)
+        ls = self.run_list_command("--depth", "1")
+        top = self.dir
+        self.assertSetEqual(set(ls), set(str(x) for x in (top / "file1.txt", top / "dir1", top / "dir4")))
 
     # @unittest.skip
     def test_depth_one(self):
         # Root level and one level deep
-        output = self.run_list_command("--depth", "1..2")
-
-        rel_paths = self.get_relative_paths(output)
+        ls = self.run_list_command("--depth", "1..2")
+        top = self.dir
         expected = {
-            "file1.txt",
-            os.path.join("dir1"),
-            os.path.join("dir4"),
-            os.path.join("dir1/dir2"),
-            os.path.join("dir1", "file2.txt"),
-            os.path.join("dir4", "file5.txt"),
+            top / "file1.txt",
+            top / "dir1",
+            top / "dir4",
+            top / "dir1" / "dir2",
+            top / "dir1" / "file2.txt",
+            top / "dir4" / "file5.txt",
         }
-        # self.exec(["find", self.temp_dir, "-mindepth", "1", "-maxdepth", "2"])
-        self.assertEqual(set(rel_paths), expected)
-        self.assertEqual(len(rel_paths), len(expected))
+        self.assertSetEqual(set(ls), set(str(x) for x in expected))
 
     # @unittest.skip
     def test_depth_two(self):
-        output = self.run_list_command("--depth", "2")
-        rel_paths = self.get_relative_paths(output)
+        ls = self.run_list_command("--depth", "2")
         expected = {
-            os.path.join("dir1", "file2.txt"),
-            os.path.join("dir1", "dir2"),
-            os.path.join("dir4", "file5.txt"),
+            os.path.join(self.temp_dir, "dir1", "file2.txt"),
+            os.path.join(self.temp_dir, "dir1", "dir2"),
+            os.path.join(self.temp_dir, "dir4", "file5.txt"),
         }
-        self.assertEqual(set(rel_paths), expected)
-        self.assertEqual(len(rel_paths), 3)
+        self.assertSetEqual(set(ls), expected)
 
     # @unittest.skip
     def test_depth_range(self):
         # Between depth 1 and 2
-        output = self.run_list_command("--depth", "2..3")
-        rel_paths = self.get_relative_paths(output)
+        ls = self.run_list_command("--depth", "2..3")
         expected = {
-            os.path.join("dir1", "file2.txt"),
-            os.path.join("dir1", "dir2"),
-            os.path.join("dir1", "dir2", "file3.txt"),
-            os.path.join("dir1", "dir2", "dir3"),
-            os.path.join("dir4", "file5.txt"),
+            os.path.join(self.temp_dir, "dir1", "file2.txt"),
+            os.path.join(self.temp_dir, "dir1", "dir2"),
+            os.path.join(self.temp_dir, "dir1", "dir2", "file3.txt"),
+            os.path.join(self.temp_dir, "dir1", "dir2", "dir3"),
+            os.path.join(self.temp_dir, "dir4", "file5.txt"),
         }
-        self.assertEqual(set(rel_paths), expected)
-        self.assertEqual(len(rel_paths), len(expected))
+        self.assertEqual(set(ls), expected)
 
     # @unittest.skip
     def test_min_depth(self):
         # At least depth 1 (exclude root level)
-        output = self.run_list_command("--depth", "2..")
-        rel_paths = self.get_relative_paths(output)
-        self.assertEqual(len(rel_paths), 6)
-        self.assertNotIn("file1.txt", rel_paths)
-        self.assertNotIn("dir1", rel_paths)
-        self.assertNotIn("dir4", rel_paths)
+        ls = self.run_list_command("--depth", "2..")
+        expected = {
+            os.path.join(self.temp_dir, "dir1", "file2.txt"),
+            os.path.join(self.temp_dir, "dir1", "dir2", "file3.txt"),
+            os.path.join(self.temp_dir, "dir1", "dir2"),
+            os.path.join(self.temp_dir, "dir1", "dir2", "dir3"),
+            os.path.join(self.temp_dir, "dir1", "dir2", "dir3", "file4.txt"),
+            os.path.join(self.temp_dir, "dir4", "file5.txt"),
+        }
+        self.assertEqual(set(ls), expected)
 
     # @unittest.skip
     def test_max_depth(self):
         # At most depth 2
-        output = self.run_list_command("--depth", "..2")
-        rel_paths = self.get_relative_paths(output)
-        self.assertEqual(len(rel_paths), 6)
-        self.assertNotIn(os.path.join("file3.txt", "dir3", "file4.txt"), rel_paths)
+        ls = self.run_list_command("--depth", "..2")
+        expected = {
+            os.path.join(self.temp_dir, "file1.txt"),
+            os.path.join(self.temp_dir, "dir1"),
+            os.path.join(self.temp_dir, "dir1", "file2.txt"),
+            os.path.join(self.temp_dir, "dir1", "dir2"),
+            os.path.join(self.temp_dir, "dir4"),
+            os.path.join(self.temp_dir, "dir4", "file5.txt"),
+        }
+        self.assertEqual(set(ls), expected)
 
     # @unittest.skip
     def test_combined_with_sizes(self):
@@ -167,10 +176,11 @@ class TestListCommandWithDepth(unittest.TestCase):
         with open(os.path.join(self.temp_dir, "dir1", "file2.txt"), "wb") as f:
             f.write(b"content")
 
-        output = self.run_list_command("--depth", "2", "--sizes", "0")
-        rel_paths = self.get_relative_paths(output)
-        self.assertEqual(len(rel_paths), 1)
-        self.assertIn(os.path.join("dir4", "file5.txt"), rel_paths)
+        ls = self.run_list_command("--depth", "2", "--sizes", "0")
+        expected = {
+            os.path.join(self.temp_dir, "dir4", "file5.txt"),
+        }
+        self.assertEqual(set(ls), expected)
 
 
 if __name__ == "__main__":

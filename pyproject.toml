@@ -1,6 +1,6 @@
 [project]
-name = "scan_dir_skel"
-version = "0.0.1"
+name = "findskel"
+version = "0.0.2"
 description = ""
 authors = [
     {name = "Jet-Logic"},

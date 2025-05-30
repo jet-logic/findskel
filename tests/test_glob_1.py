@@ -1,8 +1,7 @@
 #!/bin/env python3
 import unittest
-import re
 
-from scan_dir_skel.scantree import globre3
+from findskel.findskel import globre3
 
 
 def match3(pattern, base=""):

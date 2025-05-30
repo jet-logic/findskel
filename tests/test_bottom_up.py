@@ -36,7 +36,7 @@ class TestListBottomUp(unittest.TestCase):
 
     def run_list_command(self, *args):
         """Helper to run the list command and return output."""
-        cmd = ["python", "-m", "scan_dir_skel.list", *args, self.test_dir]
+        cmd = ["python", "-m", "findskel.list", *args, self.test_dir]
         print("RUN", cmd)
         result = run(cmd, stdout=PIPE, stderr=PIPE, text=True)
         a = [line for line in result.stdout.splitlines()]

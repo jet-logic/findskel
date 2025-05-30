@@ -38,7 +38,7 @@ class TestListCommandWithSymlinks(unittest.TestCase):
 
     def run_list_command(self, *args, path=None):
         """Helper to run the list command and return output."""
-        cmd = ["python", "-m", "scan_dir_skel.list", *args, path or self.test_dir]
+        cmd = ["python", "-m", "findskel.list", *args, path or self.test_dir]
         print("RUN", cmd)
         result = run(cmd, stdout=PIPE, stderr=PIPE, text=True)
         a = [line.strip() for line in result.stdout.splitlines()]
@@ -55,9 +55,7 @@ class TestListCommandWithSymlinks(unittest.TestCase):
         self.assertIn(os.path.join(self.test_dir, "symlink_to_dir"), output)
 
         # The contents of the symlinked directory should NOT appear
-        self.assertNotIn(
-            os.path.join(self.test_dir, "symlink_to_dir", "file_in_b.txt"), output
-        )
+        self.assertNotIn(os.path.join(self.test_dir, "symlink_to_dir", "file_in_b.txt"), output)
 
         # Regular directory contents should appear
         self.assertIn(os.path.join(self.test_dir, "dir_a", "file_in_a.txt"), output)
@@ -71,9 +69,7 @@ class TestListCommandWithSymlinks(unittest.TestCase):
         self.assertIn(os.path.join(self.test_dir, "symlink_to_dir"), output)
 
         # The contents of the symlinked directory SHOULD appear
-        self.assertIn(
-            os.path.join(self.test_dir, "symlink_to_dir", "file_in_b.txt"), output
-        )
+        self.assertIn(os.path.join(self.test_dir, "symlink_to_dir", "file_in_b.txt"), output)
 
         # Regular directory contents should still appear
         self.assertIn(os.path.join(self.test_dir, "dir_a", "file_in_a.txt"), output)
@@ -87,16 +83,14 @@ class TestListCommandWithSymlinks(unittest.TestCase):
         self.assertIn(os.path.join(self.test_dir, "broken_symlink"), output)
 
     def test_symlink_arg_1(self):
-        path = f"{self.test_dir}/symlink_to_dir"
-        output = self.run_list_command(path=path)
-        self.assertIn(f"{self.test_dir}/symlink_to_dir/file_in_b.txt", output)
-        self.assertEqual(len(output), 1)
+        path = os.path.join(self.test_dir, "symlink_to_dir")
+        ls = self.run_list_command(path=path)
+        self.assertListEqual(ls, [os.path.join(self.test_dir, "symlink_to_dir", "file_in_b.txt")])
 
     def test_symlink_arg_2(self):
-        path = f"{self.test_dir}/symlink_to_dir/file_in_b.txt"
-        output = self.run_list_command(path=path)
-        self.assertIn(f"{self.test_dir}/symlink_to_dir/file_in_b.txt", output)
-        self.assertEqual(len(output), 1)
+        path = os.path.join(self.test_dir, "symlink_to_dir", "file_in_b.txt")
+        ls = self.run_list_command(path=path)
+        self.assertListEqual(ls, [path])
 
 
 if __name__ == "__main__":
