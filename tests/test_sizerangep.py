@@ -1,7 +1,7 @@
 #!/bin/env python3
 import unittest
 
-from findskel.findskel import sizerangep
+from findskel import sizerangep
 
 
 def size_range_check(s=""):

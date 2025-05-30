@@ -1,7 +1,7 @@
 from os import DirEntry
 from re import compile as regex
 from .walkdir import FileSystemEntry
-from .findskel import FindSkel
+from . import FindSkel
 
 BEGIN = regex(r"\s*(?:#|\/\*+)\s*(?:<INSERT\s+([^\s\>]+)\s*\>|<<<\s+([^\s]+))\s*")
 END = regex(r"\s*(?:#|\/\*|)\s*(?:</INSERT>|>>>)")

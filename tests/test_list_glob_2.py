@@ -5,7 +5,7 @@ import tempfile
 import subprocess
 from pathlib import Path
 
-from findskel.findskel import globre3
+from findskel import globre3
 from re import escape
 
 

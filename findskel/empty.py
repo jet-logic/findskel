@@ -2,7 +2,7 @@ from os import DirEntry
 from os import scandir, rmdir, unlink
 from sys import stderr
 from .walkdir import FileSystemEntry
-from .findskel import FindSkel
+from . import FindSkel
 
 
 class Empty(FindSkel):

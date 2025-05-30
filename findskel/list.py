@@ -1,7 +1,7 @@
 from os import DirEntry
 from pathlib import Path
 from .walkdir import FileSystemEntry
-from .findskel import FindSkel
+from . import FindSkel
 
 
 class ListDir(FindSkel):

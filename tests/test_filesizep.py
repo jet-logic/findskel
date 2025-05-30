@@ -1,7 +1,7 @@
 #!/bin/env python3
 import unittest
 
-from findskel.findskel import filesizep
+from findskel import filesizep
 
 
 class TestFilesizep(unittest.TestCase):

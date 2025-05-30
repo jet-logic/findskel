@@ -1,7 +1,7 @@
 #!/bin/env python3
 import unittest
 
-from findskel.findskel import globre3
+from findskel import globre3
 
 
 def match3(pattern, base=""):
