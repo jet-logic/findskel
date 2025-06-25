@@ -15,3 +15,5 @@ version = {attr = "findskel.__init__.__version__"}
 
 [tool.black]
 line-length = 127
+[tool.flake8]
+max-line-length = 127

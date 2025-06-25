@@ -1,4 +1,5 @@
 #!/bin/env python3
+from re import escape
 import unittest
 
 from findskel import globre3
@@ -118,6 +119,7 @@ class TestGlobre2(unittest.TestCase):
         self.assertFalse(match("app.config"))  # Not in base
         self.assertFalse(match("/var/etc/app.config"))  # Wrong base
 
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_globre3_1(self):
+        x = globre3("*file*", escape=escape)
+        self.assertEqual(x[0], r"(?:|.+/)[^/]*file[^/]*\Z")
+        # print(*x)

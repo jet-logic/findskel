@@ -2,7 +2,7 @@ from os import DirEntry
 from .main import Main
 from .walkdir import WalkDir
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 
 class FindSkel(WalkDir, Main):
@@ -11,9 +11,9 @@ class FindSkel(WalkDir, Main):
     _file_sizes: "list[object] | None" = None
     _dir_depth: "tuple[int, int] | None" = None
     _paths_from: "list[str] | None" = None
+    _paths: "list[str] | None" = None
 
     def add_arguments(self, argp):
-
         group = argp.add_argument_group("Traversal")
         # --depth-first
         group.add_argument(
@@ -29,6 +29,7 @@ class FindSkel(WalkDir, Main):
             const=1,
             help="Follow symbolic links",
             action="store_const",
+            default=0,
         )
         # --act/--dry-run
         try:
@@ -36,9 +37,9 @@ class FindSkel(WalkDir, Main):
         except AttributeError:
             pass
         else:
-            if b:
+            if b is True:
                 argp.add_argument("--act", action="store_false", dest="dry_run", help="not a test run")
-            else:
+            elif b is False:
                 argp.add_argument(
                     "--dry-run",
                     action="store_true",
@@ -50,7 +51,6 @@ class FindSkel(WalkDir, Main):
         _glob_excludes: list[str] = getattr(self, "_glob_excludes", None)
 
         if _glob_excludes is not None or _glob_includes is not None:
-
             group.add_argument(
                 "--exclude",
                 metavar="GLOB",
@@ -100,8 +100,8 @@ class FindSkel(WalkDir, Main):
 
     def ready(self) -> None:
         #
-        _glob_includes: list[str] = getattr(self, "_glob_includes", None)
-        _glob_excludes: list[str] = getattr(self, "_glob_excludes", None)
+        _glob_includes: list[str] = getattr(self, "_glob_includes", ())
+        _glob_excludes: list[str] = getattr(self, "_glob_excludes", ())
         if _glob_includes or _glob_excludes:
             from os.path import relpath, sep, altsep
             from re import compile as regex, escape
@@ -115,8 +115,8 @@ class FindSkel(WalkDir, Main):
 
                 return col
 
-            inc = [makef(s) for s in _glob_includes]
-            exc = [makef(s) for s in _glob_excludes]
+            inc = _glob_includes and [makef(s) for s in _glob_includes]
+            exc = _glob_excludes and [makef(s) for s in _glob_excludes]
             alt = set(x for x in (sep, altsep) if x and x != "/")
 
             def check_glob(e: DirEntry, **kwargs):
@@ -203,7 +203,6 @@ def as_source(path="-", mode="rb"):
 
 
 def globre3(g: str, base="", escape=lambda x: "", no_neg=False):
-
     if no_neg is False and g.startswith("!"):
         neg = True
         g = g[1:]
@@ -233,9 +232,9 @@ def globre3(g: str, base="", escape=lambda x: "", no_neg=False):
                 res = res + ".*"
                 if i < n and "/" == g[i]:
                     i = i + 1
-                    res += "/?"
+                    res = res + "/?"
             else:
-                res = res + "[^/]+"
+                res = res + "[^/]*"
         elif c == "?":
             res = res + "[^/]"
         elif c == "[":
@@ -257,7 +256,9 @@ def globre3(g: str, base="", escape=lambda x: "", no_neg=False):
                     stuff = "\\" + stuff
                 res = "%s[%s]" % (res, stuff)
         else:
-            res = res + escape(c)
+            x = escape(c)
+            assert x
+            res = res + x
     if at_start:
         if base:
             res = "^" + escape(base) + "/" + res + r"\Z"

@@ -71,15 +71,10 @@ class WalkDir:
 
     def scan_directory(self, src: str) -> Generator[DirEntry, None, None]:
         try:
-            # enter_dir
             it = scandir(src)
-        except FileNotFoundError:
-            pass
-        except Exception:
-            if self.carry_on:
-                pass
-            else:
-                raise
+        except Exception as ex:
+            if self.file_error(src, ex) is None:
+                raise ex
         else:
             yield from it
 
@@ -88,6 +83,11 @@ class WalkDir:
 
     def process_entry(self, de: "DirEntry | FileSystemEntry") -> None:
         print(de.path)
+
+    def file_error(self, path: str, ex: Exception) -> None:
+        if self.carry_on:
+            print(ex)
+            return True
 
     def _walk_breadth_first(self, src: str, depth: int = 0) -> Generator[DirEntry, None, None]:
         depth += 1
@@ -107,7 +107,14 @@ class WalkDir:
 
     def _start_path(self, p: str):
         de: FileSystemEntry = self.create_entry(p)
-        if de.is_dir():
+        is_dir = None
+        try:
+            is_dir = de.is_dir()
+        except Exception as ex:
+            if self.file_error(p, ex) is None:
+                raise ex
+            return
+        if is_dir:
             self._root_dir = de.path
             if self.depth_first:
                 self._walk_depth_first(p)

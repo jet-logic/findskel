@@ -5,10 +5,6 @@ import tempfile
 import subprocess
 from pathlib import Path
 
-from findskel import globre3
-from re import escape
-
-
 Windows = os.environ.get("RUNNER_OS") == "Windows"
 
 
@@ -80,9 +76,11 @@ class TestListCommand(unittest.TestCase):
             f1 = ensure(top / "script.py")
             f2 = ensure(top / "src" / "script.py")
             f3 = ensure(top / "src" / "utils" / "script.py")
-            ensure(top / "script.pyc")
+            f4 = ensure(top / "script.pyc")
             ls = self.run_list_command(top, "--include", "**/*.py")
             self.assertSetEqual(set(ls), set(str(x) for x in (f1, f2, f3)))
+            ls = self.run_list_command(top, "--include", "*script*")
+            self.assertSetEqual(set(ls), set(str(x) for x in (f1, f2, f3, f4)))
         # test_character_classes
         with tempfile.TemporaryDirectory() as tmp:
             top = Path(tmp)
@@ -95,6 +93,8 @@ class TestListCommand(unittest.TestCase):
             self.assertSetEqual(set(ls), set(str(x) for x in (f1, f2)))
             ls = self.run_list_command(top, "--include", "file[!0-8].txt")
             self.assertSetEqual(set(ls), set(str(x) for x in (f5, f3)))
+            ls = self.run_list_command(top, "--include", "file*.txt")
+            self.assertSetEqual(set(ls), set(str(x) for x in (f1, f2, f3, f4, f5)))
         with tempfile.TemporaryDirectory() as tmp:
             top = Path(tmp)
             # Test trailing separator (directory only)
@@ -141,6 +141,9 @@ class TestListCommand(unittest.TestCase):
             #
             ls1 = self.run_list_command(top, "--include", r"file[]^].md")
             ls2 = [*map(str, [top / "file^.md", top / "file].md"])]
+            self.assertEqual(set(ls1), set(ls2))
+            ls1 = self.run_list_command(top, "--include", r"file[.md")
+            ls2 = [*map(str, [top / "file[.md"])]
             self.assertEqual(set(ls1), set(ls2))
             #
             ls1 = self.run_list_command(top, "--include", r"file[[9].md")

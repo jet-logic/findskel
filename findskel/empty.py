@@ -10,8 +10,9 @@ class Empty(FindSkel):
         super().__init__()
         self._file_sizes = []
         self._dir_depth = ()
-        self._re_excludes = []
-        self._re_includes = []
+        self._glob_excludes = []
+        self._glob_includes = []
+        self._paths_from = []
 
     def add_arguments(self, argp):
         self.depth_first = True
@@ -64,14 +65,6 @@ class Empty(FindSkel):
                 return
         else:
             return
-        # if self.remove:
-        #     if de.is_dir():
-        #         print("RD", de.path, file=stderr)
-        #         rmdir(de.path)
-        #     else:
-        #         print("RM", de.path, file=stderr)
-        #         unlink(de.path)
-        # else:
         print(de.path)
 
     def start(self):
