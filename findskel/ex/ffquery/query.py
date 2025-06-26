@@ -77,9 +77,18 @@ class QueryInterpreter(jmespath.visitor.TreeInterpreter):
     #     super().__init__()
     #     self.use_not_found_sentinel = use_not_found_sentinel
     # FieldNotFound
+    # def visit_field(self, node, value):
+    #     # return super().visit_field(node, value)
+    #     return value.get(node["value"])
     def visit_field(self, node, value):
-        # return super().visit_field(node, value)
-        return value.get(node["value"])
+        try:
+            # print("visit_field", node, value)
+            # return value.get(node["value"])
+            return value[node["value"]]
+        except AttributeError:
+            raise FieldNotFound()
+        except KeyError:
+            raise FieldNotFound()
 
 
 class NotFoundSentinel:
@@ -118,7 +127,7 @@ def create_compiled_searcher(expression: str):
     def search(data):
         return interpreter.visit(parsed, data)
 
-    # print(parsed)
+    print(parsed)
 
     return search
 
